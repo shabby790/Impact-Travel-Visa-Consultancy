@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { INITIAL_COUNTRIES, INITIAL_FORMS, INITIAL_MENUS } from './data/initialData';
 import { 
   Globe, Plane, GraduationCap, Building2, FileText, Download, Calendar, 
   User, Lock, CheckCircle2, Search, ArrowRight, ShieldCheck, Phone, 
@@ -197,14 +198,15 @@ export default function App() {
     try {
       setLoading(true);
       const [countriesRes, formsRes, bookingsRes, menusRes, settingsRes, analyticsRes] = await Promise.all([
-        fetch('/api/countries').then(res => res.json()),
-        fetch('/api/forms').then(res => res.json()),
-        fetch('/api/bookings').then(res => res.json()),
-        fetch('/api/menus').then(res => res.json()),
-        fetch('/api/settings').then(res => res.json()),
-        fetch('/api/analytics').then(res => res.json()),
+        fetch('/api/countries').then(res => res.json()).catch(() => []),
+        fetch('/api/forms').then(res => res.json()).catch(() => []),
+        fetch('/api/bookings').then(res => res.json()).catch(() => []),
+        fetch('/api/menus').then(res => res.json()).catch(() => []),
+        fetch('/api/settings').then(res => res.json()).catch(() => null),
+        fetch('/api/analytics').then(res => res.json()).catch(() => null),
       ]);
-      const normalizedCountries = (countriesRes || []).map((c: any) => ({
+      const rawCountries = (countriesRes && countriesRes.length > 0) ? countriesRes : INITIAL_COUNTRIES;
+      const normalizedCountries = rawCountries.map((c: any) => ({
         ...c,
         studentVisa: c.studentVisa || c.visas?.student || {
           processingTime: '6 - 8 Weeks',
@@ -228,13 +230,22 @@ export default function App() {
         tourVisa: c.tourVisa || c.visas?.tour
       }));
       setCountries(normalizedCountries);
-      setForms(formsRes);
-      setBookings(bookingsRes);
-      setMenus(menusRes);
-      setSettings(settingsRes);
-      setAnalytics(analyticsRes);
+      setForms((formsRes && formsRes.length > 0) ? formsRes : INITIAL_FORMS);
+      setBookings(bookingsRes || []);
+      setMenus((menusRes && menusRes.length > 0) ? menusRes : INITIAL_MENUS);
+      setSettings(settingsRes || {
+        brandName: 'AK Travel & Visa Consultancy',
+        tagline: 'Your Trusted Gateway to Global Education, Tourism & Sacred Journeys',
+        phone: '+92 300 1234567',
+        email: 'info@aktravels.com',
+        address: 'Office # 402, Blue Area, Islamabad, Pakistan'
+      });
+      setAnalytics(analyticsRes || { totalBookings: 0, pendingBookings: 0, totalFormsDownloaded: 0, activeCountriesCount: normalizedCountries.length });
     } catch (err) {
-      console.error('Failed to fetch data', err);
+      console.error('Failed to fetch data, falling back to initial data', err);
+      setCountries(INITIAL_COUNTRIES);
+      setForms(INITIAL_FORMS);
+      setMenus(INITIAL_MENUS);
     } finally {
       setLoading(false);
     }
