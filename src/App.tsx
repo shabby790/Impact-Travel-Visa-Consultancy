@@ -233,12 +233,21 @@ export default function App() {
       setForms((formsRes && formsRes.length > 0) ? formsRes : INITIAL_FORMS);
       setBookings(bookingsRes || []);
       setMenus((menusRes && menusRes.length > 0) ? menusRes : INITIAL_MENUS);
-      setSettings(settingsRes || {
+      const localSettings = (() => {
+        try {
+          const saved = localStorage.getItem('site_settings');
+          return saved ? JSON.parse(saved) : null;
+        } catch {
+          return null;
+        }
+      })();
+      setSettings(localSettings || settingsRes || {
         brandName: 'AK Travel & Visa Consultancy',
         tagline: 'Your Trusted Gateway to Global Education, Tourism & Sacred Journeys',
         phone: '+92 300 1234567',
         email: 'info@aktravels.com',
-        address: 'Office # 402, Blue Area, Islamabad, Pakistan'
+        address: 'Office # 402, Blue Area, Islamabad, Pakistan',
+        logoUrl: ''
       });
       setAnalytics(analyticsRes || { totalBookings: 0, pendingBookings: 0, totalFormsDownloaded: 0, activeCountriesCount: normalizedCountries.length });
     } catch (err) {
@@ -396,12 +405,21 @@ export default function App() {
 
   const saveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/api/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settings)
-    });
-    alert('Site settings updated successfully!');
+    try {
+      localStorage.setItem('site_settings', JSON.stringify(settings));
+    } catch (err) {
+      console.error('Failed to save to localStorage', err);
+    }
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+    } catch (err) {
+      // Ignore API errors on static hosting
+    }
+    alert('Site settings and logo updated successfully!');
     fetchData();
   };
 
@@ -605,8 +623,12 @@ export default function App() {
             onClick={() => { setActiveTab('home'); setMobileMenuOpen(false); }}
           >
             <div className="relative">
-              <div className="w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-md shadow-emerald-600/25 group-hover:scale-105 group-hover:shadow-emerald-600/35 transition-all duration-300 ring-2 ring-emerald-500/20">
-                <Globe className="w-6 h-6 sm:w-7 sm:h-7" />
+              <div className="w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-md shadow-emerald-600/25 group-hover:scale-105 group-hover:shadow-emerald-600/35 transition-all duration-300 ring-2 ring-emerald-500/20 overflow-hidden">
+                {settings.logoUrl ? (
+                  <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <Globe className="w-6 h-6 sm:w-7 sm:h-7" />
+                )}
               </div>
               <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-xs">
                 <Plane className="w-3 h-3 text-emerald-600 -rotate-45" />
