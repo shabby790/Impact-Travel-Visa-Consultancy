@@ -29,10 +29,10 @@ interface SiteSettings {
 }
 
 let siteSettings: SiteSettings = {
-  brandName: 'AK Travel & Visa Consultancy',
+  brandName: 'Impact Travel & Visa Consultancy',
   tagline: 'Your Trusted Gateway to Global Education, Tourism & Sacred Journeys',
   phone: '+92 300 1234567',
-  email: 'info@aktravels.com',
+  email: 'info@impactvisa.com.pk',
   address: 'Office # 402, Blue Area, Islamabad, Pakistan'
 };
 

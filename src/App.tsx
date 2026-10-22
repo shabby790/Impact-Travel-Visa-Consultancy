@@ -141,10 +141,10 @@ export default function App() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [menus, setMenus] = useState<NavMenuItem[]>([]);
   const [settings, setSettings] = useState<SiteSettings>({
-    brandName: 'AK Travel & Visa Consultancy',
+    brandName: 'Impact Travel & Visa Consultancy',
     tagline: 'Your Trusted Gateway to Global Education, Tourism & Sacred Journeys',
     phone: '+92 300 1234567',
-    email: 'info@aktravels.com',
+    email: 'info@impactvisa.com.pk',
     address: 'Office # 402, Blue Area, Islamabad, Pakistan'
   });
   const [analytics, setAnalytics] = useState<Analytics>({ totalBookings: 0, pendingBookings: 0, totalFormsDownloaded: 0, activeCountriesCount: 0 });
@@ -172,7 +172,7 @@ export default function App() {
 
   // AI Chatbot State
   const [chatMessages, setChatMessages] = useState<{ sender: 'user' | 'ai'; text: string }[]>([
-    { sender: 'ai', text: 'Welcome to AK Travel & Visa Consultancy! I am your AI Visa Advisor. Ask me anything about student visas, visit visas, Umrah packages, financial proof, or embassy requirements.' }
+    { sender: 'ai', text: 'Welcome to Impact Travel & Visa Consultancy! I am your AI Visa Advisor. Ask me anything about student visas, visit visas, Umrah packages, financial proof, or embassy requirements.' }
   ]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
@@ -242,10 +242,10 @@ export default function App() {
         }
       })();
       setSettings(localSettings || settingsRes || {
-        brandName: 'AK Travel & Visa Consultancy',
+        brandName: 'Impact Travel & Visa Consultancy',
         tagline: 'Your Trusted Gateway to Global Education, Tourism & Sacred Journeys',
         phone: '+92 300 1234567',
-        email: 'info@aktravels.com',
+        email: 'info@impactvisa.com.pk',
         address: 'Office # 402, Blue Area, Islamabad, Pakistan',
         logoUrl: ''
       });
