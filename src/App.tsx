@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { INITIAL_COUNTRIES, INITIAL_FORMS, INITIAL_MENUS } from './data/initialData';
+import { INITIAL_COUNTRIES, INITIAL_FORMS, INITIAL_MENUS, INITIAL_SETTINGS } from './data/initialData';
 import { 
   Globe, Plane, GraduationCap, Building2, FileText, Download, Calendar, 
   User, Lock, CheckCircle2, Search, ArrowRight, ShieldCheck, Phone, 
@@ -140,13 +140,7 @@ export default function App() {
   const [forms, setForms] = useState<DownloadableForm[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [menus, setMenus] = useState<NavMenuItem[]>([]);
-  const [settings, setSettings] = useState<SiteSettings>({
-    brandName: 'Impact Travel & Visa Consultancy',
-    tagline: 'Your Trusted Gateway to Global Education, Tourism & Sacred Journeys',
-    phone: '+92 300 1234567',
-    email: 'info@impactvisa.com.pk',
-    address: 'Office # 402, Blue Area, Islamabad, Pakistan'
-  });
+  const [settings, setSettings] = useState<SiteSettings>(INITIAL_SETTINGS);
   const [analytics, setAnalytics] = useState<Analytics>({ totalBookings: 0, pendingBookings: 0, totalFormsDownloaded: 0, activeCountriesCount: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -241,14 +235,7 @@ export default function App() {
           return null;
         }
       })();
-      setSettings(localSettings || settingsRes || {
-        brandName: 'Impact Travel & Visa Consultancy',
-        tagline: 'Your Trusted Gateway to Global Education, Tourism & Sacred Journeys',
-        phone: '+92 300 1234567',
-        email: 'info@impactvisa.com.pk',
-        address: 'Office # 402, Blue Area, Islamabad, Pakistan',
-        logoUrl: ''
-      });
+      setSettings(localSettings || settingsRes || INITIAL_SETTINGS);
       setAnalytics(analyticsRes || { totalBookings: 0, pendingBookings: 0, totalFormsDownloaded: 0, activeCountriesCount: normalizedCountries.length });
     } catch (err) {
       console.error('Failed to fetch data, falling back to initial data', err);
