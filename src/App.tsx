@@ -184,6 +184,54 @@ export default function App() {
   const [menuEditorData, setMenuEditorData] = useState({ label: '', url: '#', showInHeader: true, showInFooter: true, order: 10 });
   const [editingCountry, setEditingCountry] = useState<Country | null>(null);
 
+  // SMTP Email Settings State
+  const [smtpSettings, setSmtpSettings] = useState({
+    host: 'mail.impactvisa.com.pk',
+    port: 465,
+    user: 'info@impactvisa.com.pk',
+    pass: '',
+    fromEmail: 'info@impactvisa.com.pk'
+  });
+  const [smtpStatus, setSmtpStatus] = useState<{ loading: boolean; success?: string; error?: string }>({ loading: false });
+
+  const saveSmtpSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSmtpStatus({ loading: true });
+    try {
+      const res = await fetch('/api/settings/smtp', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(smtpSettings)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSmtpStatus({ loading: false, success: 'SMTP email settings saved successfully!' });
+        setTimeout(() => setSmtpStatus({ loading: false }), 4000);
+      } else {
+        setSmtpStatus({ loading: false, error: data.error || 'Failed to save SMTP settings.' });
+      }
+    } catch (err: any) {
+      setSmtpStatus({ loading: false, error: err.message || 'Error saving SMTP settings.' });
+    }
+  };
+
+  const testSmtpSettings = async () => {
+    setSmtpStatus({ loading: true });
+    try {
+      const res = await fetch('/api/settings/smtp/test', {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSmtpStatus({ loading: false, success: data.message || 'Test email sent successfully to info@impactvisa.com.pk!' });
+      } else {
+        setSmtpStatus({ loading: false, error: data.error || 'Test email failed. Please check your cPanel email password and SMTP host settings.' });
+      }
+    } catch (err: any) {
+      setSmtpStatus({ loading: false, error: err.message || 'Failed to send test email.' });
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -191,14 +239,16 @@ export default function App() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [countriesRes, formsRes, bookingsRes, menusRes, settingsRes, analyticsRes] = await Promise.all([
+      const [countriesRes, formsRes, bookingsRes, menusRes, settingsRes, analyticsRes, smtpRes] = await Promise.all([
         fetch('/api/countries').then(res => res.json()).catch(() => []),
         fetch('/api/forms').then(res => res.json()).catch(() => []),
         fetch('/api/bookings').then(res => res.json()).catch(() => []),
         fetch('/api/menus').then(res => res.json()).catch(() => []),
         fetch('/api/settings').then(res => res.json()).catch(() => null),
         fetch('/api/analytics').then(res => res.json()).catch(() => null),
+        fetch('/api/settings/smtp').then(res => res.json()).catch(() => null),
       ]);
+      if (smtpRes && smtpRes.host) setSmtpSettings(smtpRes);
       const rawCountries = (countriesRes && countriesRes.length > 0) ? countriesRes : INITIAL_COUNTRIES;
       const normalizedCountries = rawCountries.map((c: any) => ({
         ...c,
@@ -239,9 +289,9 @@ export default function App() {
       setAnalytics(analyticsRes || { totalBookings: 0, pendingBookings: 0, totalFormsDownloaded: 0, activeCountriesCount: normalizedCountries.length });
     } catch (err) {
       console.error('Failed to fetch data, falling back to initial data', err);
-      setCountries(INITIAL_COUNTRIES);
-      setForms(INITIAL_FORMS);
-      setMenus(INITIAL_MENUS);
+      setCountries(INITIAL_COUNTRIES as any);
+      setForms(INITIAL_FORMS as any);
+      setMenus(INITIAL_MENUS as any);
     } finally {
       setLoading(false);
     }
@@ -1089,7 +1139,8 @@ export default function App() {
                             required 
                             value={bookingForm.preferredDate}
                             onChange={(e) => setBookingForm({...bookingForm, preferredDate: e.target.value})}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
+                            onClick={(e) => { try { e.currentTarget.showPicker?.(); } catch (err) {} }}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500 cursor-pointer"
                           />
                         </div>
                         {bookingError && <p className="text-red-400 text-xs">{bookingError}</p>}
@@ -1502,7 +1553,8 @@ export default function App() {
                         required
                         value={bookingForm.preferredDate}
                         onChange={(e) => setBookingForm({...bookingForm, preferredDate: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500"
+                        onClick={(e) => { try { e.currentTarget.showPicker?.(); } catch (err) {} }}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 cursor-pointer"
                       />
                     </div>
                   </div>
@@ -2322,6 +2374,100 @@ export default function App() {
                       >
                         Save Header & Footer Settings
                       </button>
+                    </form>
+
+                    <hr className="my-8 border-slate-200" />
+
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900">Namecheap cPanel Email & SMTP Configuration</h3>
+                      <p className="text-xs text-slate-500 mt-1">Configure your <code className="bg-slate-100 px-1.5 py-0.5 rounded text-emerald-700 font-bold">info@impactvisa.com.pk</code> email SMTP settings so consultation bookings and website inquiries are automatically emailed to your inbox.</p>
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-xl text-xs space-y-1">
+                      <p className="font-bold flex items-center gap-1">⚠️ Troubleshooting "535 Incorrect authentication data":</p>
+                      <p>1. Make sure you are using the specific password created for <strong>info@impactvisa.com.pk</strong> in cPanel &gt; Email Accounts (not your cPanel master login password).</p>
+                      <p>2. If unsure, go to cPanel &gt; Email Accounts, click <strong>Manage</strong> next to <code className="bg-amber-100 px-1 rounded font-bold">info@impactvisa.com.pk</code>, set a new password, and enter that exact password here.</p>
+                    </div>
+
+                    {smtpStatus.success && (
+                      <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-xs font-bold">
+                        {smtpStatus.success}
+                      </div>
+                    )}
+                    {smtpStatus.error && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-xs font-bold">
+                        {smtpStatus.error}
+                      </div>
+                    )}
+
+                    <form onSubmit={saveSmtpSettings} className="space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-2">SMTP Host</label>
+                          <input 
+                            type="text" 
+                            required
+                            value={smtpSettings.host}
+                            onChange={(e) => setSmtpSettings({...smtpSettings, host: e.target.value})}
+                            placeholder="mail.impactvisa.com.pk"
+                            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 font-mono text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-2">SMTP Port</label>
+                          <input 
+                            type="number" 
+                            required
+                            value={smtpSettings.port}
+                            onChange={(e) => setSmtpSettings({...smtpSettings, port: Number(e.target.value)})}
+                            placeholder="465"
+                            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 font-mono text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Email Username</label>
+                          <input 
+                            type="email" 
+                            required
+                            value={smtpSettings.user}
+                            onChange={(e) => setSmtpSettings({...smtpSettings, user: e.target.value, fromEmail: e.target.value})}
+                            placeholder="info@impactvisa.com.pk"
+                            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Email Password (cPanel)</label>
+                          <input 
+                            type="password" 
+                            value={smtpSettings.pass}
+                            onChange={(e) => setSmtpSettings({...smtpSettings, pass: e.target.value})}
+                            placeholder="Enter cPanel email password"
+                            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-4 pt-2">
+                        <button 
+                          type="submit"
+                          disabled={smtpStatus.loading}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-7 py-3 rounded-xl text-sm transition shadow-md disabled:opacity-50"
+                        >
+                          {smtpStatus.loading ? 'Saving...' : 'Save SMTP Settings'}
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={testSmtpSettings}
+                          disabled={smtpStatus.loading}
+                          className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-7 py-3 rounded-xl text-sm transition shadow-md disabled:opacity-50 flex items-center space-x-2"
+                        >
+                          <Mail className="w-4 h-4" />
+                          <span>Send Test Email to info@impactvisa.com.pk</span>
+                        </button>
+                      </div>
                     </form>
                   </div>
                 )}
