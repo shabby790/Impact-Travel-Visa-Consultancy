@@ -12,6 +12,30 @@ var __dirname = path.dirname(fileURLToPath(import.meta.url));
 var app = express();
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+app.use(express.static(path.resolve(__dirname, "public")));
+app.get("/logo.jpg", (req, res, next) => {
+  const p = path.resolve(__dirname, "public", "logo.jpg");
+  if (fs.existsSync(p)) return res.sendFile(p);
+  next();
+});
+app.get("/logo.png", (req, res, next) => {
+  const p = path.resolve(__dirname, "public", "logo.png");
+  if (fs.existsSync(p)) return res.sendFile(p);
+  next();
+});
+app.get("/footer-logo.jpg", (req, res, next) => {
+  const p = path.resolve(__dirname, "public", "footer-logo.jpg");
+  if (fs.existsSync(p)) return res.sendFile(p);
+  next();
+});
+app.get("/footer-logo.png", (req, res, next) => {
+  const p = path.resolve(__dirname, "public", "footer-logo.png");
+  if (fs.existsSync(p)) return res.sendFile(p);
+  next();
+});
+app.get("/siteConfig.json", (req, res) => {
+  res.json(siteSettings);
+});
 var PORT = Number(process.env.PORT) || 3e3;
 var apiKey = process.env.GEMINI_API_KEY || "";
 var ai = new GoogleGenAI({ apiKey });
@@ -21,8 +45,8 @@ var siteSettings = {
   phone: "+92 300 1234567",
   email: "info@impactvisa.com.pk",
   address: "Office # 402, Blue Area, Islamabad, Pakistan",
-  logoUrl: "",
-  footerLogoUrl: ""
+  logoUrl: "/logo.jpg",
+  footerLogoUrl: "/footer-logo.jpg"
 };
 var smtpSettings = {
   host: process.env.SMTP_HOST || "mail.impactvisa.com.pk",
@@ -46,6 +70,11 @@ function saveBase64Image(dataUrl, prefix) {
     const buffer = Buffer.from(matches[2], "base64");
     fs.writeFileSync(publicPath, buffer);
     console.log(`Saved static image to ${publicPath}`);
+    const distPath = path.resolve(__dirname, "dist", filename);
+    if (fs.existsSync(path.resolve(__dirname, "dist"))) {
+      fs.writeFileSync(distPath, buffer);
+      console.log(`Mirrored static image to ${distPath}`);
+    }
     return `/${filename}`;
   } catch (err) {
     console.error("Error saving image file:", err);
@@ -59,7 +88,11 @@ function persistSiteSettings(updated) {
     const content = JSON.stringify(updated, null, 2);
     fs.writeFileSync(srcConfigPath, content, "utf-8");
     fs.writeFileSync(publicConfigPath, content, "utf-8");
-    console.log("Site settings persisted to siteConfig.json");
+    const distDir = path.resolve(__dirname, "dist");
+    if (fs.existsSync(distDir)) {
+      fs.writeFileSync(path.resolve(distDir, "siteConfig.json"), content, "utf-8");
+    }
+    console.log("Site settings persisted to siteConfig.json across directories");
   } catch (err) {
     console.error("Failed to write siteConfig.json:", err);
   }

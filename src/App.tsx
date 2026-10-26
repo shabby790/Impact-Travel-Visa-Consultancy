@@ -125,6 +125,38 @@ const renderTextWithLinks = (text: string) => {
   );
 };
 
+// Robust BrandLogo component that gracefully fallbacks to Globe icon if image fails or is missing
+const BrandLogo = ({
+  src,
+  alt = 'Logo',
+  className = 'w-full h-full object-cover',
+  iconSize = 'w-6 h-6'
+}: {
+  src?: string;
+  alt?: string;
+  className?: string;
+  iconSize?: string;
+}) => {
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setError(false);
+  }, [src]);
+
+  if (!src || error) {
+    return <Globe className={iconSize} />;
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      onError={() => setError(true)}
+      className={className}
+    />
+  );
+};
+
 export default function App() {
   // Navigation & View State
   const [activeTab, setActiveTab] = useState<'home' | 'destinations' | 'documents' | 'consultation' | 'ai-advisor' | 'admin'>('home');
@@ -143,6 +175,7 @@ export default function App() {
   const [menus, setMenus] = useState<NavMenuItem[]>([]);
   const [settings, setSettings] = useState<SiteSettings>(INITIAL_SETTINGS);
   const [settingsSuccess, setSettingsSuccess] = useState('');
+  const [savingSettings, setSavingSettings] = useState(false);
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'logoUrl' | 'footerLogoUrl') => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -282,9 +315,9 @@ export default function App() {
         fetch('/api/settings')
           .then(async (res) => {
             if (res.ok) return res.json();
-            return fetch('/siteConfig.json').then(r => r.json()).catch(() => null);
+            return fetch('/siteConfig.json?t=' + Date.now()).then(r => r.json()).catch(() => null);
           })
-          .catch(() => fetch('/siteConfig.json').then(r => r.json()).catch(() => null)),
+          .catch(() => fetch('/siteConfig.json?t=' + Date.now()).then(r => r.json()).catch(() => null)),
         fetch('/api/analytics').then(res => res.json()).catch(() => null),
         fetch('/api/settings/smtp').then(res => res.json()).catch(() => null),
       ]);
@@ -330,7 +363,10 @@ export default function App() {
           return null;
         }
       })();
-      const resolvedSettings = (settingsRes && settingsRes.brandName) ? settingsRes : (localSettings || INITIAL_SETTINGS);
+      // Always prioritize live server settings or fresh siteConfig.json, then INITIAL_SETTINGS, never let stale local storage override new code
+      const resolvedSettings = (settingsRes && settingsRes.brandName) 
+        ? { ...INITIAL_SETTINGS, ...settingsRes } 
+        : (localSettings?.brandName ? { ...INITIAL_SETTINGS, ...localSettings } : INITIAL_SETTINGS);
       setSettings(resolvedSettings);
       try {
         localStorage.setItem('site_settings', JSON.stringify(resolvedSettings));
@@ -491,6 +527,7 @@ export default function App() {
 
   const saveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSavingSettings(true);
     try {
       localStorage.setItem('site_settings', JSON.stringify(settings));
     } catch (err) {
@@ -510,11 +547,13 @@ export default function App() {
         } catch (e) {}
       }
     } catch (err) {
-      // Ignore API errors on static hosting
+      console.warn('API save error (running in static or decoupled mode):', err);
+    } finally {
+      setSavingSettings(false);
     }
-    setSettingsSuccess('Brand, Logo & Phone saved to project files! Push code to Git to update live site.');
-    alert('Settings & Logo successfully saved to project files! Push to Git (GitHub/Vercel) so your live site reflects these changes.');
-    setTimeout(() => setSettingsSuccess(''), 6000);
+    setSettingsSuccess('Brand, Phone aur Logo project files me successfully save ho gaya hai! Live site pe update ke liye Git repository pe code push karen.');
+    alert('Settings & Logo project files me successfully save ho gaya hai! Live site pe update ke liye Git pe commit & push zaroori hai.');
+    setTimeout(() => setSettingsSuccess(''), 7000);
     fetchData();
   };
 
@@ -720,11 +759,11 @@ export default function App() {
           >
             <div className="relative">
               <div className="w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-md shadow-emerald-600/25 group-hover:scale-105 group-hover:shadow-emerald-600/35 transition-all duration-300 ring-2 ring-emerald-500/20 overflow-hidden">
-                {settings.logoUrl ? (
-                  <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-cover" />
-                ) : (
-                  <Globe className="w-6 h-6 sm:w-7 sm:h-7" />
-                )}
+                <BrandLogo 
+                  src={settings.logoUrl} 
+                  alt={settings.brandName || "Logo"} 
+                  iconSize="w-6 h-6 sm:w-7 sm:h-7" 
+                />
               </div>
               <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-xs">
                 <Plane className="w-3 h-3 text-emerald-600 -rotate-45" />
@@ -2427,11 +2466,11 @@ export default function App() {
                         <label className="block text-xs font-bold text-slate-700 uppercase">Header Logo (Upload Image file or URL)</label>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                           <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
-                            {settings.logoUrl ? (
-                              <img src={settings.logoUrl} alt="Header Logo Preview" className="w-full h-full object-cover" />
-                            ) : (
-                              <Globe className="w-8 h-8 text-slate-400" />
-                            )}
+                            <BrandLogo 
+                              src={settings.logoUrl} 
+                              alt="Header Logo Preview" 
+                              iconSize="w-8 h-8 text-slate-400" 
+                            />
                           </div>
                           <div className="flex-grow space-y-2 w-full">
                             <input 
@@ -2444,7 +2483,7 @@ export default function App() {
                               type="text" 
                               value={settings.logoUrl || ''}
                               onChange={(e) => setSettings({...settings, logoUrl: e.target.value})}
-                              placeholder="Or paste direct image URL (https://...)"
+                              placeholder="Or paste direct image URL (/logo.jpg or https://...)"
                               className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 font-mono"
                             />
                           </div>
@@ -2456,13 +2495,11 @@ export default function App() {
                         <label className="block text-xs font-bold text-slate-700 uppercase">Footer Logo (Upload Image file or URL)</label>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                           <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
-                            {settings.footerLogoUrl ? (
-                              <img src={settings.footerLogoUrl} alt="Footer Logo Preview" className="w-full h-full object-cover" />
-                            ) : settings.logoUrl ? (
-                              <img src={settings.logoUrl} alt="Footer Logo Preview" className="w-full h-full object-cover" />
-                            ) : (
-                              <Globe className="w-8 h-8 text-slate-400" />
-                            )}
+                            <BrandLogo 
+                              src={settings.footerLogoUrl || settings.logoUrl} 
+                              alt="Footer Logo Preview" 
+                              iconSize="w-8 h-8 text-slate-400" 
+                            />
                           </div>
                           <div className="flex-grow space-y-2 w-full">
                             <input 
@@ -2475,7 +2512,7 @@ export default function App() {
                               type="text" 
                               value={settings.footerLogoUrl || ''}
                               onChange={(e) => setSettings({...settings, footerLogoUrl: e.target.value})}
-                              placeholder="Or paste direct footer logo URL (https://...)"
+                              placeholder="Or paste direct footer logo URL (/footer-logo.jpg or https://...)"
                               className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 font-mono"
                             />
                           </div>
@@ -2516,13 +2553,61 @@ export default function App() {
                         />
                       </div>
 
-                      <button 
-                        type="submit"
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3.5 rounded-xl text-sm transition shadow-lg shadow-emerald-600/20"
-                      >
-                        Save Header & Footer Settings
-                      </button>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <button 
+                          type="submit"
+                          disabled={savingSettings}
+                          className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold px-8 py-3.5 rounded-xl text-sm transition shadow-lg shadow-emerald-600/20 flex items-center space-x-2"
+                        >
+                          {savingSettings && <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent inline-block"></span>}
+                          <span>{savingSettings ? 'Saving Settings...' : 'Save Header & Footer Settings'}</span>
+                        </button>
+                      </div>
                     </form>
+
+                    {/* Live Site Sync & Git Sync Guidance Panel */}
+                    <div className="bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 space-y-4">
+                      <div className="flex items-center space-x-2.5 text-emerald-400">
+                        <Sparkles className="w-5 h-5 shrink-0" />
+                        <h4 className="font-extrabold text-sm uppercase tracking-wide">Live Website & Git Sync Tools</h4>
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        Jab aap upar <strong>Save</strong> button press karte hain, yeh changes turant project files (<code className="text-emerald-400 font-mono">src/data/siteConfig.json</code> aur <code className="text-emerald-400 font-mono">public/logo.jpg</code>) me save ho jati hain. Live website (<code className="text-emerald-400 font-mono">impactvisa.com.pk</code>) pe update dikhane ke liye yeh code Git me push hona zaroori hai.
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            try {
+                              localStorage.removeItem('site_settings');
+                              window.location.reload();
+                            } catch (e) {}
+                          }}
+                          className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2"
+                        >
+                          <span>🔄 Clear Browser Cache & Reload Live Data</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'siteConfig.json';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-2"
+                        >
+                          <span>📥 Download siteConfig.json</span>
+                        </button>
+                      </div>
+                    </div>
 
                     <hr className="my-8 border-slate-200" />
 
@@ -2870,11 +2955,11 @@ export default function App() {
           <div className="space-y-4 md:col-span-1">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white overflow-hidden shadow-sm">
-                {settings.footerLogoUrl || settings.logoUrl ? (
-                  <img src={settings.footerLogoUrl || settings.logoUrl} alt="Footer Logo" className="w-full h-full object-cover" />
-                ) : (
-                  <Globe className="w-6 h-6" />
-                )}
+                <BrandLogo 
+                  src={settings.footerLogoUrl || settings.logoUrl} 
+                  alt={settings.brandName || "Footer Logo"} 
+                  iconSize="w-6 h-6" 
+                />
               </div>
               <h2 className="text-lg font-bold tracking-tight">{settings.brandName}</h2>
             </div>

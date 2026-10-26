@@ -139,7 +139,7 @@ export const INITIAL_SETTINGS = {
   phone: siteConfig.phone || '+92 300 1234567',
   email: siteConfig.email || 'info@impactvisa.com.pk',
   address: siteConfig.address || 'Office # 402, Blue Area, Islamabad, Pakistan',
-  logoUrl: siteConfig.logoUrl || '',
-  footerLogoUrl: siteConfig.footerLogoUrl || ''
+  logoUrl: siteConfig.logoUrl || '/logo.jpg',
+  footerLogoUrl: siteConfig.footerLogoUrl || '/footer-logo.jpg'
 };
 

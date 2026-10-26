@@ -15,6 +15,34 @@ const app = express();
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
+// Serve static assets from public directory
+app.use(express.static(path.resolve(__dirname, 'public')));
+
+// Dedicated static file routes for branding assets so they are never swallowed by SPA HTML wildcard
+app.get('/logo.jpg', (req, res, next) => {
+  const p = path.resolve(__dirname, 'public', 'logo.jpg');
+  if (fs.existsSync(p)) return res.sendFile(p);
+  next();
+});
+app.get('/logo.png', (req, res, next) => {
+  const p = path.resolve(__dirname, 'public', 'logo.png');
+  if (fs.existsSync(p)) return res.sendFile(p);
+  next();
+});
+app.get('/footer-logo.jpg', (req, res, next) => {
+  const p = path.resolve(__dirname, 'public', 'footer-logo.jpg');
+  if (fs.existsSync(p)) return res.sendFile(p);
+  next();
+});
+app.get('/footer-logo.png', (req, res, next) => {
+  const p = path.resolve(__dirname, 'public', 'footer-logo.png');
+  if (fs.existsSync(p)) return res.sendFile(p);
+  next();
+});
+app.get('/siteConfig.json', (req, res) => {
+  res.json(siteSettings);
+});
+
 // Support Cloud Run / dynamic PORT
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -39,8 +67,8 @@ let siteSettings: SiteSettings = {
   phone: '+92 300 1234567',
   email: 'info@impactvisa.com.pk',
   address: 'Office # 402, Blue Area, Islamabad, Pakistan',
-  logoUrl: '',
-  footerLogoUrl: ''
+  logoUrl: '/logo.jpg',
+  footerLogoUrl: '/footer-logo.jpg'
 };
 
 interface SmtpSettings {
@@ -61,7 +89,7 @@ let smtpSettings: SmtpSettings = {
   fromEmail: process.env.SMTP_FROM || 'info@impactvisa.com.pk'
 };
 
-// Helper: Save Base64 image to public directory as static file
+// Helper: Save Base64 image to public directory as static file and mirror to dist
 function saveBase64Image(dataUrl: string, prefix: string): string {
   try {
     if (!dataUrl || typeof dataUrl !== 'string') return dataUrl;
@@ -80,6 +108,14 @@ function saveBase64Image(dataUrl: string, prefix: string): string {
     const buffer = Buffer.from(matches[2], 'base64');
     fs.writeFileSync(publicPath, buffer);
     console.log(`Saved static image to ${publicPath}`);
+
+    // Also mirror to dist if dist folder exists
+    const distPath = path.resolve(__dirname, 'dist', filename);
+    if (fs.existsSync(path.resolve(__dirname, 'dist'))) {
+      fs.writeFileSync(distPath, buffer);
+      console.log(`Mirrored static image to ${distPath}`);
+    }
+
     return `/${filename}`;
   } catch (err) {
     console.error('Error saving image file:', err);
@@ -87,7 +123,7 @@ function saveBase64Image(dataUrl: string, prefix: string): string {
   }
 }
 
-// Helper: Save site configuration to disk (src/data and public)
+// Helper: Save site configuration to disk (src/data, public, and dist)
 function persistSiteSettings(updated: SiteSettings) {
   try {
     const srcConfigPath = path.resolve(__dirname, 'src', 'data', 'siteConfig.json');
@@ -95,7 +131,11 @@ function persistSiteSettings(updated: SiteSettings) {
     const content = JSON.stringify(updated, null, 2);
     fs.writeFileSync(srcConfigPath, content, 'utf-8');
     fs.writeFileSync(publicConfigPath, content, 'utf-8');
-    console.log('Site settings persisted to siteConfig.json');
+    const distDir = path.resolve(__dirname, 'dist');
+    if (fs.existsSync(distDir)) {
+      fs.writeFileSync(path.resolve(distDir, 'siteConfig.json'), content, 'utf-8');
+    }
+    console.log('Site settings persisted to siteConfig.json across directories');
   } catch (err) {
     console.error('Failed to write siteConfig.json:', err);
   }

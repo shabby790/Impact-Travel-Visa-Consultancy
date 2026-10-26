@@ -4,6 +4,7 @@
   "phone": "+92 300 1234567",
   "email": "info@impactvisa.com.pk",
   "address": "Office # 402, Blue Area, Islamabad, Pakistan",
-  "logoUrl": "",
-  "footerLogoUrl": ""
+  "logoUrl": "/logo.jpg",
+  "footerLogoUrl": "/footer-logo.jpg",
+  "version": 2
 }
