@@ -15,25 +15,38 @@ app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 app.use(express.static(path.resolve(__dirname, "public")));
 app.get("/logo.jpg", (req, res, next) => {
   const p = path.resolve(__dirname, "public", "logo.jpg");
-  if (fs.existsSync(p)) return res.sendFile(p);
+  if (fs.existsSync(p)) {
+    res.set("Cache-Control", "no-cache, must-revalidate");
+    return res.sendFile(p);
+  }
   next();
 });
 app.get("/logo.png", (req, res, next) => {
   const p = path.resolve(__dirname, "public", "logo.png");
-  if (fs.existsSync(p)) return res.sendFile(p);
+  if (fs.existsSync(p)) {
+    res.set("Cache-Control", "no-cache, must-revalidate");
+    return res.sendFile(p);
+  }
   next();
 });
 app.get("/footer-logo.jpg", (req, res, next) => {
   const p = path.resolve(__dirname, "public", "footer-logo.jpg");
-  if (fs.existsSync(p)) return res.sendFile(p);
+  if (fs.existsSync(p)) {
+    res.set("Cache-Control", "no-cache, must-revalidate");
+    return res.sendFile(p);
+  }
   next();
 });
 app.get("/footer-logo.png", (req, res, next) => {
   const p = path.resolve(__dirname, "public", "footer-logo.png");
-  if (fs.existsSync(p)) return res.sendFile(p);
+  if (fs.existsSync(p)) {
+    res.set("Cache-Control", "no-cache, must-revalidate");
+    return res.sendFile(p);
+  }
   next();
 });
 app.get("/siteConfig.json", (req, res) => {
+  res.set("Cache-Control", "no-cache, must-revalidate");
   res.json(siteSettings);
 });
 var PORT = Number(process.env.PORT) || 3e3;
@@ -59,23 +72,25 @@ var smtpSettings = {
 function saveBase64Image(dataUrl, prefix) {
   try {
     if (!dataUrl || typeof dataUrl !== "string") return dataUrl;
-    const matches = dataUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-    if (!matches || matches.length !== 3) {
-      return dataUrl;
-    }
-    const mime = matches[1].toLowerCase();
+    if (!dataUrl.startsWith("data:")) return dataUrl;
+    const base64Index = dataUrl.indexOf(";base64,");
+    if (base64Index === -1) return dataUrl;
+    const mime = dataUrl.substring(5, base64Index).toLowerCase();
+    const rawData = dataUrl.substring(base64Index + 8).replace(/\s/g, "");
     const ext = mime.includes("jpeg") || mime.includes("jpg") ? "jpg" : mime.includes("svg") ? "svg" : mime.includes("webp") ? "webp" : mime.includes("gif") ? "gif" : "png";
     const filename = `${prefix}.${ext}`;
-    const publicPath = path.resolve(__dirname, "public", filename);
-    const buffer = Buffer.from(matches[2], "base64");
+    const publicDir = path.resolve(__dirname, "public");
+    if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
+    const publicPath = path.resolve(publicDir, filename);
+    const buffer = Buffer.from(rawData, "base64");
     fs.writeFileSync(publicPath, buffer);
     console.log(`Saved static image to ${publicPath}`);
-    const distPath = path.resolve(__dirname, "dist", filename);
-    if (fs.existsSync(path.resolve(__dirname, "dist"))) {
-      fs.writeFileSync(distPath, buffer);
-      console.log(`Mirrored static image to ${distPath}`);
+    const distDir = path.resolve(__dirname, "dist");
+    if (fs.existsSync(distDir)) {
+      fs.writeFileSync(path.resolve(distDir, filename), buffer);
+      console.log(`Mirrored static image to ${path.resolve(distDir, filename)}`);
     }
-    return `/${filename}`;
+    return `/${filename}?v=${Date.now()}`;
   } catch (err) {
     console.error("Error saving image file:", err);
     return dataUrl;
@@ -83,9 +98,17 @@ function saveBase64Image(dataUrl, prefix) {
 }
 function persistSiteSettings(updated) {
   try {
-    const srcConfigPath = path.resolve(__dirname, "src", "data", "siteConfig.json");
-    const publicConfigPath = path.resolve(__dirname, "public", "siteConfig.json");
-    const content = JSON.stringify(updated, null, 2);
+    const configWithVersion = {
+      ...updated,
+      version: Date.now()
+    };
+    const srcDir = path.resolve(__dirname, "src", "data");
+    if (!fs.existsSync(srcDir)) fs.mkdirSync(srcDir, { recursive: true });
+    const srcConfigPath = path.resolve(srcDir, "siteConfig.json");
+    const publicDir = path.resolve(__dirname, "public");
+    if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
+    const publicConfigPath = path.resolve(publicDir, "siteConfig.json");
+    const content = JSON.stringify(configWithVersion, null, 2);
     fs.writeFileSync(srcConfigPath, content, "utf-8");
     fs.writeFileSync(publicConfigPath, content, "utf-8");
     const distDir = path.resolve(__dirname, "dist");
@@ -954,8 +977,10 @@ app.put("/api/settings", (req, res) => {
   res.json({ success: true, siteSettings });
 });
 app.get("/api/settings/smtp", (req, res) => {
+  res.set("Cache-Control", "no-cache, must-revalidate");
   res.json({
     ...smtpSettings,
+    hasPass: !!smtpSettings.pass,
     pass: smtpSettings.pass ? "********" : ""
   });
 });

@@ -2,7 +2,12 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/impalnls/impactvisa
-    - /bin/cp -R * $DEPLOYPATH
-    - cd $DEPLOYPATH
-    - npm install --legacy-peer-deps
-    - npm run build
+    - mkdir -p $DEPLOYPATH
+    - /bin/cp -R * $DEPLOYPATH/
+    - mkdir -p /home/impalnls/public_html
+    - /bin/cp -R dist/* /home/impalnls/public_html/ || true
+    - /bin/cp -R public/* /home/impalnls/public_html/ || true
+    - /bin/cp -R dist/* $DEPLOYPATH/ || true
+    - mkdir -p $DEPLOYPATH/tmp
+    - touch $DEPLOYPATH/tmp/restart.txt
+
