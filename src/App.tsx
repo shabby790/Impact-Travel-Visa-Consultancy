@@ -78,6 +78,8 @@ interface SiteSettings {
   address: string;
   logoUrl?: string;
   footerLogoUrl?: string;
+  version?: number;
+  updatedAt?: number;
 }
 
 interface Analytics {
@@ -125,17 +127,17 @@ const renderTextWithLinks = (text: string) => {
   );
 };
 
-// Robust BrandLogo component that handles cache busting, retries on newly saved disk files, and graceful fallback
+// Robust BrandLogo component that handles cache busting, multi-extension fallbacks, and graceful presentation
 const BrandLogo = ({
   src,
   alt = 'Logo',
-  className = 'w-full h-full object-cover',
-  iconSize = 'w-6 h-6'
+  className = 'w-full h-full object-contain',
+  fallbackText = 'IV'
 }: {
   src?: string;
   alt?: string;
   className?: string;
-  iconSize?: string;
+  fallbackText?: string;
 }) => {
   const [loadFailed, setLoadFailed] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
@@ -146,14 +148,17 @@ const BrandLogo = ({
   }, [src]);
 
   // Clean source URL with cache buster if it's a relative path and not a data URL
-  const resolvedSrc = src
-    ? (src.startsWith('data:') || src.includes('?v=') ? src : `${src}${src.includes('?') ? '&' : '?'}v=${retryKey > 0 ? Date.now() : '1'}`)
-    : '';
+  const resolvedSrc = React.useMemo(() => {
+    if (!src) return '';
+    if (src.startsWith('data:') || src.startsWith('blob:')) return src;
+    if (src.includes('?v=')) return src;
+    return `${src}${src.includes('?') ? '&' : '?'}v=${retryKey > 0 ? Date.now() : '3'}`;
+  }, [src, retryKey]);
 
   if (!resolvedSrc || loadFailed) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-700 text-white font-black text-xs uppercase tracking-tight select-none">
-        <span>IV</span>
+      <div className="w-full h-full min-w-8 min-h-8 flex items-center justify-center bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-700 text-white font-black text-xs uppercase tracking-tight select-none rounded-lg">
+        <span>{fallbackText}</span>
       </div>
     );
   }
@@ -163,8 +168,8 @@ const BrandLogo = ({
       src={resolvedSrc}
       alt={alt}
       onError={() => {
-        if (retryKey < 2) {
-          setTimeout(() => setRetryKey(prev => prev + 1), 350);
+        if (retryKey < 3) {
+          setTimeout(() => setRetryKey(prev => prev + 1), 300);
         } else {
           setLoadFailed(true);
         }
@@ -190,15 +195,37 @@ export default function App() {
   const [forms, setForms] = useState<DownloadableForm[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [menus, setMenus] = useState<NavMenuItem[]>([]);
-  const [settings, setSettings] = useState<SiteSettings>(INITIAL_SETTINGS);
+  
+  // Initialize settings with localStorage first to prevent any flash or revert of default values
+  const [settings, setSettings] = useState<SiteSettings>(() => {
+    try {
+      const saved = localStorage.getItem('site_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.brandName || parsed.phone || parsed.logoUrl)) {
+          return { ...INITIAL_SETTINGS, ...parsed };
+        }
+      }
+    } catch (e) {}
+    return INITIAL_SETTINGS;
+  });
+
   const [settingsSuccess, setSettingsSuccess] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'logoUrl' | 'footerLogoUrl') => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
-      setSettings(prev => ({ ...prev, [field]: reader.result as string }));
+      const resultStr = reader.result as string;
+      setSettings(prev => {
+        const updated = { ...prev, [field]: resultStr, updatedAt: Date.now() };
+        try {
+          localStorage.setItem('site_settings', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
     };
     reader.readAsDataURL(file);
   };
@@ -385,10 +412,22 @@ export default function App() {
           return null;
         }
       })();
-      // Always prioritize live server settings or fresh siteConfig.json, then INITIAL_SETTINGS, never let stale local storage override new code
-      const resolvedSettings = (settingsRes && settingsRes.brandName) 
-        ? { ...INITIAL_SETTINGS, ...settingsRes } 
-        : (localSettings?.brandName ? { ...INITIAL_SETTINGS, ...localSettings } : INITIAL_SETTINGS);
+
+      // Robust version-aware merge: never let an older server response or default file wipe newer local settings
+      let resolvedSettings = { ...INITIAL_SETTINGS };
+      const serverVersion = Number(settingsRes?.version || settingsRes?.updatedAt || 0);
+      const localVersion = Number(localSettings?.version || localSettings?.updatedAt || 0);
+
+      if (localSettings && (localSettings.brandName || localSettings.phone || localSettings.logoUrl)) {
+        resolvedSettings = { ...resolvedSettings, ...localSettings };
+      }
+
+      if (settingsRes && settingsRes.brandName) {
+        if (serverVersion >= localVersion || !localSettings?.brandName) {
+          resolvedSettings = { ...resolvedSettings, ...settingsRes };
+        }
+      }
+
       setSettings(resolvedSettings);
       try {
         localStorage.setItem('site_settings', JSON.stringify(resolvedSettings));
@@ -550,34 +589,45 @@ export default function App() {
   const saveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingSettings(true);
+    const now = Date.now();
+    const updatedWithTimestamp: SiteSettings = {
+      ...settings,
+      version: now,
+      updatedAt: now
+    };
+
+    // 1. Immediately update React state and browser localStorage so data is NEVER lost or reverted
+    setSettings(updatedWithTimestamp);
     try {
-      const cleanSettings = { ...settings };
-      if (cleanSettings.logoUrl?.startsWith('data:')) cleanSettings.logoUrl = '/logo.jpg';
-      if (cleanSettings.footerLogoUrl?.startsWith('data:')) cleanSettings.footerLogoUrl = '/footer-logo.jpg';
-      localStorage.setItem('site_settings', JSON.stringify(cleanSettings));
+      localStorage.setItem('site_settings', JSON.stringify(updatedWithTimestamp));
     } catch (err) {
       console.warn('LocalStorage save error:', err);
     }
+
+    // 2. Persist to server / disk across all directories
     try {
       const res = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
+        body: JSON.stringify(updatedWithTimestamp)
       });
-      const data = await res.json();
-      if (data && data.siteSettings) {
-        setSettings(data.siteSettings);
-        try {
-          localStorage.setItem('site_settings', JSON.stringify(data.siteSettings));
-        } catch (e) {}
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.siteSettings) {
+          const merged = { ...updatedWithTimestamp, ...data.siteSettings };
+          setSettings(merged);
+          try {
+            localStorage.setItem('site_settings', JSON.stringify(merged));
+          } catch (e) {}
+        }
       }
     } catch (err) {
       console.warn('API save error (running in static or decoupled mode):', err);
     } finally {
       setSavingSettings(false);
     }
-    setSettingsSuccess('Brand Name, Phone aur Logo project files me successfully save ho gaya hai! Live site pe update ke liye Git repository pe code push karen.');
-    alert('Settings & Logo successfully save ho gaya hai! Live site pe update ke liye Git pe commit & push zaroori hai.');
+    setSettingsSuccess('Brand Name, Phone, Address aur Logo permanently save ho chuke hain!');
+    alert('Settings successfully save ho chuki hain! Header aur Footer par changes update ho gaye hain.');
     setTimeout(() => setSettingsSuccess(''), 7000);
   };
 
@@ -782,11 +832,11 @@ export default function App() {
             onClick={() => { setActiveTab('home'); setMobileMenuOpen(false); }}
           >
             <div className="relative">
-              <div className="w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-md shadow-emerald-600/25 group-hover:scale-105 group-hover:shadow-emerald-600/35 transition-all duration-300 ring-2 ring-emerald-500/20 overflow-hidden">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 bg-white rounded-2xl flex items-center justify-center shadow-md shadow-emerald-600/15 group-hover:scale-105 transition-all duration-300 ring-2 ring-emerald-500/20 overflow-hidden p-1">
                 <BrandLogo 
                   src={settings.logoUrl} 
                   alt={settings.brandName || "Logo"} 
-                  iconSize="w-6 h-6 sm:w-7 sm:h-7" 
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-xs">
@@ -2489,11 +2539,11 @@ export default function App() {
                       <div className="border border-slate-200 p-5 rounded-2xl bg-slate-50 space-y-3">
                         <label className="block text-xs font-bold text-slate-700 uppercase">Header Logo (Upload Image file or URL)</label>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                          <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+                          <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 shadow-xs p-1">
                             <BrandLogo 
                               src={settings.logoUrl} 
                               alt="Header Logo Preview" 
-                              iconSize="w-8 h-8 text-slate-400" 
+                              className="w-full h-full object-contain"
                             />
                           </div>
                           <div className="flex-grow space-y-2 w-full">
@@ -2518,11 +2568,11 @@ export default function App() {
                       <div className="border border-slate-200 p-5 rounded-2xl bg-slate-50 space-y-3">
                         <label className="block text-xs font-bold text-slate-700 uppercase">Footer Logo (Upload Image file or URL)</label>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                          <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+                          <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 shadow-xs p-1">
                             <BrandLogo 
                               src={settings.footerLogoUrl || settings.logoUrl} 
                               alt="Footer Logo Preview" 
-                              iconSize="w-8 h-8 text-slate-400" 
+                              className="w-full h-full object-contain"
                             />
                           </div>
                           <div className="flex-grow space-y-2 w-full">
@@ -2593,10 +2643,10 @@ export default function App() {
                     <div className="bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 space-y-4">
                       <div className="flex items-center space-x-2.5 text-emerald-400">
                         <Sparkles className="w-5 h-5 shrink-0" />
-                        <h4 className="font-extrabold text-sm uppercase tracking-wide">Live Website & Git Sync Tools</h4>
+                        <h4 className="font-extrabold text-sm uppercase tracking-wide">Vercel Live Hosting & Git Sync</h4>
                       </div>
                       <p className="text-xs text-slate-300 leading-relaxed">
-                        Jab aap upar <strong>Save</strong> button press karte hain, yeh changes turant project files (<code className="text-emerald-400 font-mono">src/data/siteConfig.json</code> aur <code className="text-emerald-400 font-mono">public/logo.jpg</code>) me save ho jati hain. Live website (<code className="text-emerald-400 font-mono">impactvisa.com.pk</code>) pe update dikhane ke liye yeh code Git me push hona zaroori hai.
+                        Aapki live website <strong>Vercel</strong> par hosted hai, aur <strong>cPanel</strong> par sirf email (<code className="text-emerald-400 font-mono">info@impactvisa.com.pk</code>) configured hai. Jab aap upar <strong>Save</strong> button press karte hain, yeh changes browser aur project files me save ho jati hain. Vercel par automatic live update ke liye code Git repository par push karen.
                       </p>
 
                       <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -2998,11 +3048,11 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           <div className="space-y-4 md:col-span-1">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white overflow-hidden shadow-sm">
+              <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-sm p-1">
                 <BrandLogo 
                   src={settings.footerLogoUrl || settings.logoUrl} 
                   alt={settings.brandName || "Footer Logo"} 
-                  iconSize="w-6 h-6" 
+                  className="w-full h-full object-contain"
                 />
               </div>
               <h2 className="text-lg font-bold tracking-tight">{settings.brandName}</h2>

@@ -13,40 +13,75 @@ var app = express();
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 app.use(express.static(path.resolve(__dirname, "public")));
-app.get("/logo.jpg", (req, res, next) => {
-  const p = path.resolve(__dirname, "public", "logo.jpg");
-  if (fs.existsSync(p)) {
-    res.set("Cache-Control", "no-cache, must-revalidate");
-    return res.sendFile(p);
+function sendExistingFile(res, candidatePaths, mimeType) {
+  for (const p of candidatePaths) {
+    if (fs.existsSync(p)) {
+      res.set({
+        "Content-Type": mimeType,
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      });
+      return res.sendFile(p);
+    }
   }
+  return false;
+}
+app.get(["/logo.jpg", "/logo.jpeg"], (req, res, next) => {
+  const candidates = [
+    path.resolve(__dirname, "public", "logo.jpg"),
+    path.resolve(__dirname, "dist", "logo.jpg"),
+    path.resolve(__dirname, "public", "logo.png"),
+    path.resolve(__dirname, "dist", "logo.png"),
+    path.resolve(__dirname, "logo.jpg"),
+    path.resolve(__dirname, "logo.png")
+  ];
+  if (sendExistingFile(res, candidates, "image/jpeg")) return;
   next();
 });
 app.get("/logo.png", (req, res, next) => {
-  const p = path.resolve(__dirname, "public", "logo.png");
-  if (fs.existsSync(p)) {
-    res.set("Cache-Control", "no-cache, must-revalidate");
-    return res.sendFile(p);
-  }
+  const candidates = [
+    path.resolve(__dirname, "public", "logo.png"),
+    path.resolve(__dirname, "dist", "logo.png"),
+    path.resolve(__dirname, "public", "logo.jpg"),
+    path.resolve(__dirname, "dist", "logo.jpg"),
+    path.resolve(__dirname, "logo.png"),
+    path.resolve(__dirname, "logo.jpg")
+  ];
+  if (sendExistingFile(res, candidates, "image/png")) return;
   next();
 });
-app.get("/footer-logo.jpg", (req, res, next) => {
-  const p = path.resolve(__dirname, "public", "footer-logo.jpg");
-  if (fs.existsSync(p)) {
-    res.set("Cache-Control", "no-cache, must-revalidate");
-    return res.sendFile(p);
-  }
+app.get(["/footer-logo.jpg", "/footer-logo.jpeg"], (req, res, next) => {
+  const candidates = [
+    path.resolve(__dirname, "public", "footer-logo.jpg"),
+    path.resolve(__dirname, "dist", "footer-logo.jpg"),
+    path.resolve(__dirname, "public", "footer-logo.png"),
+    path.resolve(__dirname, "dist", "footer-logo.png"),
+    path.resolve(__dirname, "public", "logo.jpg"),
+    path.resolve(__dirname, "public", "logo.png")
+  ];
+  if (sendExistingFile(res, candidates, "image/jpeg")) return;
   next();
 });
 app.get("/footer-logo.png", (req, res, next) => {
-  const p = path.resolve(__dirname, "public", "footer-logo.png");
-  if (fs.existsSync(p)) {
-    res.set("Cache-Control", "no-cache, must-revalidate");
-    return res.sendFile(p);
-  }
+  const candidates = [
+    path.resolve(__dirname, "public", "footer-logo.png"),
+    path.resolve(__dirname, "dist", "footer-logo.png"),
+    path.resolve(__dirname, "public", "footer-logo.jpg"),
+    path.resolve(__dirname, "dist", "footer-logo.jpg"),
+    path.resolve(__dirname, "public", "logo.png"),
+    path.resolve(__dirname, "public", "logo.jpg")
+  ];
+  if (sendExistingFile(res, candidates, "image/png")) return;
   next();
 });
 app.get("/siteConfig.json", (req, res) => {
-  res.set("Cache-Control", "no-cache, must-revalidate");
+  res.set({
+    "Content-Type": "application/json",
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0"
+  });
   res.json(siteSettings);
 });
 var PORT = Number(process.env.PORT) || 3e3;
@@ -77,20 +112,38 @@ function saveBase64Image(dataUrl, prefix) {
     if (base64Index === -1) return dataUrl;
     const mime = dataUrl.substring(5, base64Index).toLowerCase();
     const rawData = dataUrl.substring(base64Index + 8).replace(/\s/g, "");
-    const ext = mime.includes("jpeg") || mime.includes("jpg") ? "jpg" : mime.includes("svg") ? "svg" : mime.includes("webp") ? "webp" : mime.includes("gif") ? "gif" : "png";
-    const filename = `${prefix}.${ext}`;
-    const publicDir = path.resolve(__dirname, "public");
-    if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
-    const publicPath = path.resolve(publicDir, filename);
     const buffer = Buffer.from(rawData, "base64");
-    fs.writeFileSync(publicPath, buffer);
-    console.log(`Saved static image to ${publicPath}`);
-    const distDir = path.resolve(__dirname, "dist");
-    if (fs.existsSync(distDir)) {
-      fs.writeFileSync(path.resolve(distDir, filename), buffer);
-      console.log(`Mirrored static image to ${path.resolve(distDir, filename)}`);
+    const ext = mime.includes("jpeg") || mime.includes("jpg") ? "jpg" : mime.includes("svg") ? "svg" : mime.includes("webp") ? "webp" : mime.includes("gif") ? "gif" : "png";
+    const filenamesToSave = [
+      `${prefix}.${ext}`,
+      `${prefix}.png`,
+      `${prefix}.jpg`
+    ];
+    const dirsToSync = [
+      path.resolve(__dirname, "public"),
+      path.resolve(__dirname, "dist"),
+      path.resolve(__dirname)
+    ];
+    for (const dir of dirsToSync) {
+      if (!fs.existsSync(dir)) {
+        try {
+          fs.mkdirSync(dir, { recursive: true });
+        } catch (e) {
+        }
+      }
+      if (fs.existsSync(dir)) {
+        for (const fname of filenamesToSave) {
+          try {
+            fs.writeFileSync(path.resolve(dir, fname), buffer);
+          } catch (e) {
+            console.warn(`Could not write ${fname} to ${dir}:`, e);
+          }
+        }
+      }
     }
-    return `/${filename}?v=${Date.now()}`;
+    const primaryFilename = `${prefix}.${ext}`;
+    console.log(`Saved static logo to public and dist as ${primaryFilename}`);
+    return `/${primaryFilename}?v=${Date.now()}`;
   } catch (err) {
     console.error("Error saving image file:", err);
     return dataUrl;
@@ -98,54 +151,90 @@ function saveBase64Image(dataUrl, prefix) {
 }
 function persistSiteSettings(updated) {
   try {
+    const timestamp = Date.now();
     const configWithVersion = {
       ...updated,
-      version: Date.now()
+      version: timestamp,
+      updatedAt: timestamp
     };
-    const srcDir = path.resolve(__dirname, "src", "data");
-    if (!fs.existsSync(srcDir)) fs.mkdirSync(srcDir, { recursive: true });
-    const srcConfigPath = path.resolve(srcDir, "siteConfig.json");
-    const publicDir = path.resolve(__dirname, "public");
-    if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
-    const publicConfigPath = path.resolve(publicDir, "siteConfig.json");
     const content = JSON.stringify(configWithVersion, null, 2);
-    fs.writeFileSync(srcConfigPath, content, "utf-8");
-    fs.writeFileSync(publicConfigPath, content, "utf-8");
-    const distDir = path.resolve(__dirname, "dist");
-    if (fs.existsSync(distDir)) {
-      fs.writeFileSync(path.resolve(distDir, "siteConfig.json"), content, "utf-8");
+    const locations = [
+      path.resolve(__dirname, "src", "data", "siteConfig.json"),
+      path.resolve(__dirname, "public", "siteConfig.json"),
+      path.resolve(__dirname, "siteConfig.json"),
+      path.resolve(__dirname, "dist", "siteConfig.json")
+    ];
+    for (const loc of locations) {
+      try {
+        const parent = path.dirname(loc);
+        if (!fs.existsSync(parent)) fs.mkdirSync(parent, { recursive: true });
+        fs.writeFileSync(loc, content, "utf-8");
+      } catch (e) {
+        console.warn(`Could not persist config to ${loc}:`, e);
+      }
     }
-    console.log("Site settings persisted to siteConfig.json across directories");
+    console.log("Site settings persisted to siteConfig.json across all target directories");
   } catch (err) {
     console.error("Failed to write siteConfig.json:", err);
   }
 }
 function persistSmtpSettings(updated) {
   try {
-    const smtpPath = path.resolve(__dirname, "src", "data", "smtpConfig.json");
-    fs.writeFileSync(smtpPath, JSON.stringify(updated, null, 2), "utf-8");
+    const locations = [
+      path.resolve(__dirname, "src", "data", "smtpConfig.json"),
+      path.resolve(__dirname, "public", "smtpConfig.json"),
+      path.resolve(__dirname, "smtpConfig.json")
+    ];
+    const content = JSON.stringify(updated, null, 2);
+    for (const loc of locations) {
+      try {
+        const parent = path.dirname(loc);
+        if (!fs.existsSync(parent)) fs.mkdirSync(parent, { recursive: true });
+        fs.writeFileSync(loc, content, "utf-8");
+      } catch (e) {
+      }
+    }
     console.log("SMTP settings persisted to smtpConfig.json");
   } catch (err) {
     console.error("Failed to write smtpConfig.json:", err);
   }
 }
-try {
-  const srcConfigPath = path.resolve(__dirname, "src", "data", "siteConfig.json");
-  if (fs.existsSync(srcConfigPath)) {
-    const saved = JSON.parse(fs.readFileSync(srcConfigPath, "utf-8"));
-    siteSettings = { ...siteSettings, ...saved };
+var candidateConfigLocations = [
+  path.resolve(__dirname, "src", "data", "siteConfig.json"),
+  path.resolve(__dirname, "public", "siteConfig.json"),
+  path.resolve(__dirname, "siteConfig.json"),
+  path.resolve(__dirname, "dist", "siteConfig.json")
+];
+for (const loc of candidateConfigLocations) {
+  try {
+    if (fs.existsSync(loc)) {
+      const saved = JSON.parse(fs.readFileSync(loc, "utf-8"));
+      if (saved && saved.brandName) {
+        siteSettings = { ...siteSettings, ...saved };
+        console.log(`Loaded persisted settings from ${loc}`);
+        break;
+      }
+    }
+  } catch (e) {
   }
-} catch (e) {
-  console.warn("Could not read siteConfig.json on startup:", e);
 }
-try {
-  const smtpPath = path.resolve(__dirname, "src", "data", "smtpConfig.json");
-  if (fs.existsSync(smtpPath)) {
-    const savedSmtp = JSON.parse(fs.readFileSync(smtpPath, "utf-8"));
-    smtpSettings = { ...smtpSettings, ...savedSmtp };
+var candidateSmtpLocations = [
+  path.resolve(__dirname, "src", "data", "smtpConfig.json"),
+  path.resolve(__dirname, "public", "smtpConfig.json"),
+  path.resolve(__dirname, "smtpConfig.json")
+];
+for (const loc of candidateSmtpLocations) {
+  try {
+    if (fs.existsSync(loc)) {
+      const savedSmtp = JSON.parse(fs.readFileSync(loc, "utf-8"));
+      if (savedSmtp && savedSmtp.host) {
+        smtpSettings = { ...smtpSettings, ...savedSmtp };
+        console.log(`Loaded persisted SMTP settings from ${loc}`);
+        break;
+      }
+    }
+  } catch (e) {
   }
-} catch (e) {
-  console.warn("Could not read smtpConfig.json on startup:", e);
 }
 var navMenus = [
   { id: "m-1", label: "Home", url: "#home", showInHeader: true, showInFooter: true, order: 1 },
@@ -1390,4 +1479,10 @@ async function startServer() {
     console.log(`Server running on port ${PORT} (0.0.0.0)`);
   });
 }
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+var server_default = app;
+export {
+  server_default as default
+};
