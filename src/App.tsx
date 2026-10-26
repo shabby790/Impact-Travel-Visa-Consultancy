@@ -196,12 +196,18 @@ export default function App() {
   const [editingCountry, setEditingCountry] = useState<Country | null>(null);
 
   // SMTP Email Settings State
-  const [smtpSettings, setSmtpSettings] = useState({
-    host: 'mail.impactvisa.com.pk',
-    port: 465,
-    user: 'info@impactvisa.com.pk',
-    pass: '',
-    fromEmail: 'info@impactvisa.com.pk'
+  const [smtpSettings, setSmtpSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('smtp_settings');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      host: 'mail.impactvisa.com.pk',
+      port: 465,
+      user: 'info@impactvisa.com.pk',
+      pass: '',
+      fromEmail: 'info@impactvisa.com.pk'
+    };
   });
   const [smtpStatus, setSmtpStatus] = useState<{ loading: boolean; success?: string; error?: string }>({ loading: false });
 
@@ -209,14 +215,32 @@ export default function App() {
     e.preventDefault();
     setSmtpStatus({ loading: true });
     try {
+      let passwordToSave = smtpSettings.pass;
+      if (passwordToSave === '********') {
+        try {
+          const prevSaved = localStorage.getItem('smtp_settings');
+          if (prevSaved) {
+            const parsed = JSON.parse(prevSaved);
+            if (parsed.pass && parsed.pass !== '********') {
+              passwordToSave = parsed.pass;
+            }
+          }
+        } catch (e) {}
+      }
+
+      const payload = { ...smtpSettings, pass: passwordToSave };
+      localStorage.setItem('smtp_settings', JSON.stringify(payload));
+      setSmtpSettings(payload);
+
       const res = await fetch('/api/settings/smtp', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(smtpSettings)
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.success) {
         setSmtpStatus({ loading: false, success: 'SMTP email settings saved successfully!' });
+        alert('SMTP email settings saved successfully!');
         setTimeout(() => setSmtpStatus({ loading: false }), 4000);
       } else {
         setSmtpStatus({ loading: false, error: data.error || 'Failed to save SMTP settings.' });
@@ -259,7 +283,12 @@ export default function App() {
         fetch('/api/analytics').then(res => res.json()).catch(() => null),
         fetch('/api/settings/smtp').then(res => res.json()).catch(() => null),
       ]);
-      if (smtpRes && smtpRes.host) setSmtpSettings(smtpRes);
+      if (smtpRes && smtpRes.host) {
+        setSmtpSettings(prev => ({
+          ...smtpRes,
+          pass: (smtpRes.pass === '********' && prev.pass && prev.pass !== '********') ? prev.pass : (smtpRes.pass || prev.pass)
+        }));
+      }
       const rawCountries = (countriesRes && countriesRes.length > 0) ? countriesRes : INITIAL_COUNTRIES;
       const normalizedCountries = rawCountries.map((c: any) => ({
         ...c,
@@ -468,6 +497,7 @@ export default function App() {
       // Ignore API errors on static hosting
     }
     setSettingsSuccess('Settings, logos & contact details saved successfully!');
+    alert('Header & Footer settings saved successfully!');
     setTimeout(() => setSettingsSuccess(''), 5000);
     fetchData();
   };
