@@ -77,6 +77,7 @@ interface SiteSettings {
   email: string;
   address: string;
   logoUrl?: string;
+  footerLogoUrl?: string;
 }
 
 interface Analytics {
@@ -141,6 +142,16 @@ export default function App() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [menus, setMenus] = useState<NavMenuItem[]>([]);
   const [settings, setSettings] = useState<SiteSettings>(INITIAL_SETTINGS);
+  const [settingsSuccess, setSettingsSuccess] = useState('');
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'logoUrl' | 'footerLogoUrl') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSettings(prev => ({ ...prev, [field]: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
   const [analytics, setAnalytics] = useState<Analytics>({ totalBookings: 0, pendingBookings: 0, totalFormsDownloaded: 0, activeCountriesCount: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -456,7 +467,8 @@ export default function App() {
     } catch (err) {
       // Ignore API errors on static hosting
     }
-    alert('Site settings and logo updated successfully!');
+    setSettingsSuccess('Settings, logos & contact details saved successfully!');
+    setTimeout(() => setSettingsSuccess(''), 5000);
     fetchData();
   };
 
@@ -1134,14 +1146,25 @@ export default function App() {
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-slate-300 mb-1">Preferred Date</label>
-                          <input 
-                            type="date" 
-                            required 
-                            value={bookingForm.preferredDate}
-                            onChange={(e) => setBookingForm({...bookingForm, preferredDate: e.target.value})}
-                            onClick={(e) => { try { e.currentTarget.showPicker?.(); } catch (err) {} }}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500 cursor-pointer"
-                          />
+                          <div 
+                            className="relative cursor-pointer"
+                            onClick={(e) => {
+                              const input = e.currentTarget.querySelector('input') as HTMLInputElement;
+                              if (input) {
+                                input.focus();
+                                try { input.showPicker?.(); } catch (err) {}
+                              }
+                            }}
+                          >
+                            <input 
+                              type="date" 
+                              required 
+                              value={bookingForm.preferredDate}
+                              onChange={(e) => setBookingForm({...bookingForm, preferredDate: e.target.value})}
+                              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500 cursor-pointer pr-10"
+                            />
+                            <Calendar className="w-4 h-4 text-emerald-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
                         </div>
                         {bookingError && <p className="text-red-400 text-xs">{bookingError}</p>}
                         <button 
@@ -1548,14 +1571,25 @@ export default function App() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Preferred Consultation Date</label>
-                      <input 
-                        type="date" 
-                        required
-                        value={bookingForm.preferredDate}
-                        onChange={(e) => setBookingForm({...bookingForm, preferredDate: e.target.value})}
-                        onClick={(e) => { try { e.currentTarget.showPicker?.(); } catch (err) {} }}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 cursor-pointer"
-                      />
+                      <div 
+                        className="relative cursor-pointer"
+                        onClick={(e) => {
+                          const input = e.currentTarget.querySelector('input') as HTMLInputElement;
+                          if (input) {
+                            input.focus();
+                            try { input.showPicker?.(); } catch (err) {}
+                          }
+                        }}
+                      >
+                        <input 
+                          type="date" 
+                          required
+                          value={bookingForm.preferredDate}
+                          onChange={(e) => setBookingForm({...bookingForm, preferredDate: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 cursor-pointer pr-10"
+                        />
+                        <Calendar className="w-4 h-4 text-emerald-600 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
                     </div>
                   </div>
 
@@ -2334,6 +2368,73 @@ export default function App() {
                         </div>
                       </div>
 
+                      {settingsSuccess && (
+                        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl text-xs font-bold flex items-center space-x-2 shadow-sm">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>{settingsSuccess}</span>
+                        </div>
+                      )}
+
+                      {/* Header Logo Upload & URL */}
+                      <div className="border border-slate-200 p-5 rounded-2xl bg-slate-50 space-y-3">
+                        <label className="block text-xs font-bold text-slate-700 uppercase">Header Logo (Upload Image file or URL)</label>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                          <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+                            {settings.logoUrl ? (
+                              <img src={settings.logoUrl} alt="Header Logo Preview" className="w-full h-full object-cover" />
+                            ) : (
+                              <Globe className="w-8 h-8 text-slate-400" />
+                            )}
+                          </div>
+                          <div className="flex-grow space-y-2 w-full">
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              onChange={(e) => handleLogoUpload(e, 'logoUrl')}
+                              className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+                            />
+                            <input 
+                              type="text" 
+                              value={settings.logoUrl || ''}
+                              onChange={(e) => setSettings({...settings, logoUrl: e.target.value})}
+                              placeholder="Or paste direct image URL (https://...)"
+                              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer Logo Upload & URL */}
+                      <div className="border border-slate-200 p-5 rounded-2xl bg-slate-50 space-y-3">
+                        <label className="block text-xs font-bold text-slate-700 uppercase">Footer Logo (Upload Image file or URL)</label>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                          <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+                            {settings.footerLogoUrl ? (
+                              <img src={settings.footerLogoUrl} alt="Footer Logo Preview" className="w-full h-full object-cover" />
+                            ) : settings.logoUrl ? (
+                              <img src={settings.logoUrl} alt="Footer Logo Preview" className="w-full h-full object-cover" />
+                            ) : (
+                              <Globe className="w-8 h-8 text-slate-400" />
+                            )}
+                          </div>
+                          <div className="flex-grow space-y-2 w-full">
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              onChange={(e) => handleLogoUpload(e, 'footerLogoUrl')}
+                              className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+                            />
+                            <input 
+                              type="text" 
+                              value={settings.footerLogoUrl || ''}
+                              onChange={(e) => setSettings({...settings, footerLogoUrl: e.target.value})}
+                              placeholder="Or paste direct footer logo URL (https://...)"
+                              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
                           <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Phone / WhatsApp Number</label>
@@ -2721,8 +2822,12 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           <div className="space-y-4 md:col-span-1">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white">
-                <Globe className="w-6 h-6" />
+              <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white overflow-hidden shadow-sm">
+                {settings.footerLogoUrl || settings.logoUrl ? (
+                  <img src={settings.footerLogoUrl || settings.logoUrl} alt="Footer Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <Globe className="w-6 h-6" />
+                )}
               </div>
               <h2 className="text-lg font-bold tracking-tight">{settings.brandName}</h2>
             </div>

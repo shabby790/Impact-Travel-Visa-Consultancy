@@ -27,6 +27,8 @@ interface SiteSettings {
   phone: string;
   email: string;
   address: string;
+  logoUrl?: string;
+  footerLogoUrl?: string;
 }
 
 let siteSettings: SiteSettings = {
@@ -34,7 +36,9 @@ let siteSettings: SiteSettings = {
   tagline: 'Your Trusted Gateway to Global Education, Tourism & Sacred Journeys',
   phone: '+92 300 1234567',
   email: 'info@impactvisa.com.pk',
-  address: 'Office # 402, Blue Area, Islamabad, Pakistan'
+  address: 'Office # 402, Blue Area, Islamabad, Pakistan',
+  logoUrl: '',
+  footerLogoUrl: ''
 };
 
 interface SmtpSettings {
