@@ -279,7 +279,12 @@ export default function App() {
         fetch('/api/forms').then(res => res.json()).catch(() => []),
         fetch('/api/bookings').then(res => res.json()).catch(() => []),
         fetch('/api/menus').then(res => res.json()).catch(() => []),
-        fetch('/api/settings').then(res => res.json()).catch(() => null),
+        fetch('/api/settings')
+          .then(async (res) => {
+            if (res.ok) return res.json();
+            return fetch('/siteConfig.json').then(r => r.json()).catch(() => null);
+          })
+          .catch(() => fetch('/siteConfig.json').then(r => r.json()).catch(() => null)),
         fetch('/api/analytics').then(res => res.json()).catch(() => null),
         fetch('/api/settings/smtp').then(res => res.json()).catch(() => null),
       ]);
@@ -325,7 +330,11 @@ export default function App() {
           return null;
         }
       })();
-      setSettings(localSettings || settingsRes || INITIAL_SETTINGS);
+      const resolvedSettings = (settingsRes && settingsRes.brandName) ? settingsRes : (localSettings || INITIAL_SETTINGS);
+      setSettings(resolvedSettings);
+      try {
+        localStorage.setItem('site_settings', JSON.stringify(resolvedSettings));
+      } catch (e) {}
       setAnalytics(analyticsRes || { totalBookings: 0, pendingBookings: 0, totalFormsDownloaded: 0, activeCountriesCount: normalizedCountries.length });
     } catch (err) {
       console.error('Failed to fetch data, falling back to initial data', err);
@@ -488,19 +497,27 @@ export default function App() {
       console.error('Failed to save to localStorage', err);
     }
     try {
-      await fetch('/api/settings', {
+      const res = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
       });
+      const data = await res.json();
+      if (data && data.siteSettings) {
+        setSettings(data.siteSettings);
+        try {
+          localStorage.setItem('site_settings', JSON.stringify(data.siteSettings));
+        } catch (e) {}
+      }
     } catch (err) {
       // Ignore API errors on static hosting
     }
-    setSettingsSuccess('Settings, logos & contact details saved successfully!');
-    alert('Header & Footer settings saved successfully!');
-    setTimeout(() => setSettingsSuccess(''), 5000);
+    setSettingsSuccess('Brand, Logo & Phone saved to project files! Push code to Git to update live site.');
+    alert('Settings & Logo successfully saved to project files! Push to Git (GitHub/Vercel) so your live site reflects these changes.');
+    setTimeout(() => setSettingsSuccess(''), 6000);
     fetchData();
   };
+
 
   const createMenu = async (e: React.FormEvent) => {
     e.preventDefault();

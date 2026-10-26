@@ -10,8 +10,10 @@ import nodemailer from 'nodemailer';
 dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
 // Support Cloud Run / dynamic PORT
 const PORT = Number(process.env.PORT) || 3000;
@@ -58,6 +60,79 @@ let smtpSettings: SmtpSettings = {
   pass: process.env.SMTP_PASS || '',
   fromEmail: process.env.SMTP_FROM || 'info@impactvisa.com.pk'
 };
+
+// Helper: Save Base64 image to public directory as static file
+function saveBase64Image(dataUrl: string, prefix: string): string {
+  try {
+    if (!dataUrl || typeof dataUrl !== 'string') return dataUrl;
+    const matches = dataUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      return dataUrl;
+    }
+    const mime = matches[1].toLowerCase();
+    const ext = mime.includes('jpeg') || mime.includes('jpg') ? 'jpg'
+      : mime.includes('svg') ? 'svg'
+      : mime.includes('webp') ? 'webp'
+      : mime.includes('gif') ? 'gif'
+      : 'png';
+    const filename = `${prefix}.${ext}`;
+    const publicPath = path.resolve(__dirname, 'public', filename);
+    const buffer = Buffer.from(matches[2], 'base64');
+    fs.writeFileSync(publicPath, buffer);
+    console.log(`Saved static image to ${publicPath}`);
+    return `/${filename}`;
+  } catch (err) {
+    console.error('Error saving image file:', err);
+    return dataUrl;
+  }
+}
+
+// Helper: Save site configuration to disk (src/data and public)
+function persistSiteSettings(updated: SiteSettings) {
+  try {
+    const srcConfigPath = path.resolve(__dirname, 'src', 'data', 'siteConfig.json');
+    const publicConfigPath = path.resolve(__dirname, 'public', 'siteConfig.json');
+    const content = JSON.stringify(updated, null, 2);
+    fs.writeFileSync(srcConfigPath, content, 'utf-8');
+    fs.writeFileSync(publicConfigPath, content, 'utf-8');
+    console.log('Site settings persisted to siteConfig.json');
+  } catch (err) {
+    console.error('Failed to write siteConfig.json:', err);
+  }
+}
+
+// Helper: Save SMTP configuration to disk
+function persistSmtpSettings(updated: SmtpSettings) {
+  try {
+    const smtpPath = path.resolve(__dirname, 'src', 'data', 'smtpConfig.json');
+    fs.writeFileSync(smtpPath, JSON.stringify(updated, null, 2), 'utf-8');
+    console.log('SMTP settings persisted to smtpConfig.json');
+  } catch (err) {
+    console.error('Failed to write smtpConfig.json:', err);
+  }
+}
+
+// Load initial settings from disk if available
+try {
+  const srcConfigPath = path.resolve(__dirname, 'src', 'data', 'siteConfig.json');
+  if (fs.existsSync(srcConfigPath)) {
+    const saved = JSON.parse(fs.readFileSync(srcConfigPath, 'utf-8'));
+    siteSettings = { ...siteSettings, ...saved };
+  }
+} catch (e) {
+  console.warn('Could not read siteConfig.json on startup:', e);
+}
+
+try {
+  const smtpPath = path.resolve(__dirname, 'src', 'data', 'smtpConfig.json');
+  if (fs.existsSync(smtpPath)) {
+    const savedSmtp = JSON.parse(fs.readFileSync(smtpPath, 'utf-8'));
+    smtpSettings = { ...smtpSettings, ...savedSmtp };
+  }
+} catch (e) {
+  console.warn('Could not read smtpConfig.json on startup:', e);
+}
+
 
 // Navigation Menus storage (Quick Links)
 interface MenuItem {
@@ -680,10 +755,23 @@ app.get('/api/settings', (req, res) => {
 
 // Update Site Settings (Admin)
 app.put('/api/settings', (req, res) => {
+  const incoming = { ...req.body };
+
+  // If logo is Base64, save to static public file /public/logo.[ext]
+  if (incoming.logoUrl && incoming.logoUrl.startsWith('data:image/')) {
+    incoming.logoUrl = saveBase64Image(incoming.logoUrl, 'logo');
+  }
+  // If footer logo is Base64, save to static public file /public/footer-logo.[ext]
+  if (incoming.footerLogoUrl && incoming.footerLogoUrl.startsWith('data:image/')) {
+    incoming.footerLogoUrl = saveBase64Image(incoming.footerLogoUrl, 'footer-logo');
+  }
+
   siteSettings = {
     ...siteSettings,
-    ...req.body
+    ...incoming
   };
+
+  persistSiteSettings(siteSettings);
   res.json({ success: true, siteSettings });
 });
 
@@ -703,8 +791,11 @@ app.put('/api/settings/smtp', (req, res) => {
   if (user !== undefined) smtpSettings.user = user;
   if (pass && pass !== '********') smtpSettings.pass = pass;
   if (fromEmail !== undefined) smtpSettings.fromEmail = fromEmail;
-  res.json({ success: true, message: 'SMTP settings updated successfully' });
+
+  persistSmtpSettings(smtpSettings);
+  res.json({ success: true, message: 'SMTP settings updated and saved to disk successfully' });
 });
+
 
 // Test SMTP Settings
 app.post('/api/settings/smtp/test', async (req, res) => {

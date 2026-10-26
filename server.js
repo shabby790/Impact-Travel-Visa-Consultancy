@@ -6,20 +6,91 @@ import { fileURLToPath } from "url";
 import fs from "fs";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import nodemailer from "nodemailer";
 dotenv.config();
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 var app = express();
-app.use(express.json());
+app.use(express.json({ limit: "20mb" }));
+app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 var PORT = Number(process.env.PORT) || 3e3;
 var apiKey = process.env.GEMINI_API_KEY || "";
 var ai = new GoogleGenAI({ apiKey });
 var siteSettings = {
-  brandName: "AK Travel & Visa Consultancy",
+  brandName: "Impact Travel & Visa Consultancy",
   tagline: "Your Trusted Gateway to Global Education, Tourism & Sacred Journeys",
   phone: "+92 300 1234567",
-  email: "info@aktravels.com",
-  address: "Office # 402, Blue Area, Islamabad, Pakistan"
+  email: "info@impactvisa.com.pk",
+  address: "Office # 402, Blue Area, Islamabad, Pakistan",
+  logoUrl: "",
+  footerLogoUrl: ""
 };
+var smtpSettings = {
+  host: process.env.SMTP_HOST || "mail.impactvisa.com.pk",
+  port: Number(process.env.SMTP_PORT) || 465,
+  secure: true,
+  user: process.env.SMTP_USER || "info@impactvisa.com.pk",
+  pass: process.env.SMTP_PASS || "",
+  fromEmail: process.env.SMTP_FROM || "info@impactvisa.com.pk"
+};
+function saveBase64Image(dataUrl, prefix) {
+  try {
+    if (!dataUrl || typeof dataUrl !== "string") return dataUrl;
+    const matches = dataUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      return dataUrl;
+    }
+    const mime = matches[1].toLowerCase();
+    const ext = mime.includes("jpeg") || mime.includes("jpg") ? "jpg" : mime.includes("svg") ? "svg" : mime.includes("webp") ? "webp" : mime.includes("gif") ? "gif" : "png";
+    const filename = `${prefix}.${ext}`;
+    const publicPath = path.resolve(__dirname, "public", filename);
+    const buffer = Buffer.from(matches[2], "base64");
+    fs.writeFileSync(publicPath, buffer);
+    console.log(`Saved static image to ${publicPath}`);
+    return `/${filename}`;
+  } catch (err) {
+    console.error("Error saving image file:", err);
+    return dataUrl;
+  }
+}
+function persistSiteSettings(updated) {
+  try {
+    const srcConfigPath = path.resolve(__dirname, "src", "data", "siteConfig.json");
+    const publicConfigPath = path.resolve(__dirname, "public", "siteConfig.json");
+    const content = JSON.stringify(updated, null, 2);
+    fs.writeFileSync(srcConfigPath, content, "utf-8");
+    fs.writeFileSync(publicConfigPath, content, "utf-8");
+    console.log("Site settings persisted to siteConfig.json");
+  } catch (err) {
+    console.error("Failed to write siteConfig.json:", err);
+  }
+}
+function persistSmtpSettings(updated) {
+  try {
+    const smtpPath = path.resolve(__dirname, "src", "data", "smtpConfig.json");
+    fs.writeFileSync(smtpPath, JSON.stringify(updated, null, 2), "utf-8");
+    console.log("SMTP settings persisted to smtpConfig.json");
+  } catch (err) {
+    console.error("Failed to write smtpConfig.json:", err);
+  }
+}
+try {
+  const srcConfigPath = path.resolve(__dirname, "src", "data", "siteConfig.json");
+  if (fs.existsSync(srcConfigPath)) {
+    const saved = JSON.parse(fs.readFileSync(srcConfigPath, "utf-8"));
+    siteSettings = { ...siteSettings, ...saved };
+  }
+} catch (e) {
+  console.warn("Could not read siteConfig.json on startup:", e);
+}
+try {
+  const smtpPath = path.resolve(__dirname, "src", "data", "smtpConfig.json");
+  if (fs.existsSync(smtpPath)) {
+    const savedSmtp = JSON.parse(fs.readFileSync(smtpPath, "utf-8"));
+    smtpSettings = { ...smtpSettings, ...savedSmtp };
+  }
+} catch (e) {
+  console.warn("Could not read smtpConfig.json on startup:", e);
+}
 var navMenus = [
   { id: "m-1", label: "Home", url: "#home", showInHeader: true, showInFooter: true, order: 1 },
   { id: "m-2", label: "Destinations & Visas", url: "#destinations", showInHeader: true, showInFooter: true, order: 2 },
@@ -835,11 +906,62 @@ app.get("/api/settings", (req, res) => {
   res.json(siteSettings);
 });
 app.put("/api/settings", (req, res) => {
+  const incoming = { ...req.body };
+  if (incoming.logoUrl && incoming.logoUrl.startsWith("data:image/")) {
+    incoming.logoUrl = saveBase64Image(incoming.logoUrl, "logo");
+  }
+  if (incoming.footerLogoUrl && incoming.footerLogoUrl.startsWith("data:image/")) {
+    incoming.footerLogoUrl = saveBase64Image(incoming.footerLogoUrl, "footer-logo");
+  }
   siteSettings = {
     ...siteSettings,
-    ...req.body
+    ...incoming
   };
+  persistSiteSettings(siteSettings);
   res.json({ success: true, siteSettings });
+});
+app.get("/api/settings/smtp", (req, res) => {
+  res.json({
+    ...smtpSettings,
+    pass: smtpSettings.pass ? "********" : ""
+  });
+});
+app.put("/api/settings/smtp", (req, res) => {
+  const { host, port, user, pass, fromEmail } = req.body;
+  if (host !== void 0) smtpSettings.host = host;
+  if (port !== void 0) smtpSettings.port = Number(port);
+  if (user !== void 0) smtpSettings.user = user;
+  if (pass && pass !== "********") smtpSettings.pass = pass;
+  if (fromEmail !== void 0) smtpSettings.fromEmail = fromEmail;
+  persistSmtpSettings(smtpSettings);
+  res.json({ success: true, message: "SMTP settings updated and saved to disk successfully" });
+});
+app.post("/api/settings/smtp/test", async (req, res) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: smtpSettings.host,
+      port: smtpSettings.port,
+      secure: smtpSettings.port === 465,
+      auth: {
+        user: smtpSettings.user,
+        pass: smtpSettings.pass
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+    await transporter.verify();
+    const info = await transporter.sendMail({
+      from: `"${siteSettings.brandName}" <${smtpSettings.fromEmail || smtpSettings.user}>`,
+      to: siteSettings.email || smtpSettings.user,
+      subject: `Test Email from ${siteSettings.brandName} (SMTP Configured Successfully!)`,
+      text: `Congratulations! Your Namecheap cPanel email (${smtpSettings.user}) is successfully configured with your website. Inquiries from your website will now arrive directly in this inbox.`
+    });
+    res.json({ success: true, message: "SMTP test email sent successfully!", messageId: info.messageId });
+  } catch (error) {
+    console.error("SMTP Test Error:", error);
+    res.status(400).json({ success: false, error: error.message || "Failed to connect or send test email using provided SMTP settings." });
+  }
 });
 app.get("/api/menus", (req, res) => {
   res.json(navMenus);
@@ -1043,7 +1165,7 @@ INSTRUCTIONS & IMPORTANT GUIDELINES:
 app.get("/api/bookings", (req, res) => {
   res.json(bookings);
 });
-app.post("/api/bookings", (req, res) => {
+app.post("/api/bookings", async (req, res) => {
   const newBooking = {
     id: `bk-${Date.now()}`,
     status: "Pending",
@@ -1051,6 +1173,59 @@ app.post("/api/bookings", (req, res) => {
     ...req.body
   };
   bookings.unshift(newBooking);
+  if (smtpSettings.host && smtpSettings.user && smtpSettings.pass) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: smtpSettings.host,
+        port: smtpSettings.port,
+        secure: smtpSettings.port === 465,
+        auth: {
+          user: smtpSettings.user,
+          pass: smtpSettings.pass
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+      const mailOptions = {
+        from: `"${siteSettings.brandName}" <${smtpSettings.fromEmail || smtpSettings.user}>`,
+        to: siteSettings.email || "info@impactvisa.com.pk",
+        subject: `New Visa Consultation Inquiry: ${newBooking.fullName} (${newBooking.visaType} - ${newBooking.destination})`,
+        text: `
+New consultation request received on ${siteSettings.brandName}:
+
+Full Name: ${newBooking.fullName}
+Email: ${newBooking.email}
+Phone: ${newBooking.phone}
+Visa Type: ${newBooking.visaType}
+Destination: ${newBooking.destination}
+Preferred Date: ${newBooking.preferredDate || "Not specified"}
+Date Submitted: ${newBooking.createdAt}
+
+Please log in to the admin panel or reply directly to the client at ${newBooking.email}.
+        `,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <h2 style="color: #047857; margin-top: 0;">New Consultation Inquiry</h2>
+            <p>You have received a new visa consultation request from your website <strong>${siteSettings.brandName}</strong>:</p>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+              <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold; width: 140px;">Full Name:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;">${newBooking.fullName}</td></tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Email:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;"><a href="mailto:${newBooking.email}">${newBooking.email}</a></td></tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Phone:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;"><a href="tel:${newBooking.phone}">${newBooking.phone}</a></td></tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Visa Type:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;">${newBooking.visaType}</td></tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Destination:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;">${newBooking.destination}</td></tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Preferred Date:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;">${newBooking.preferredDate || "As soon as possible"}</td></tr>
+            </table>
+            <p style="margin-top: 20px; font-size: 13px; color: #718096;">Sent via ${siteSettings.brandName} SMTP Mailer (${siteSettings.email})</p>
+          </div>
+        `
+      };
+      await transporter.sendMail(mailOptions);
+      console.log("Consultation notification email sent successfully to:", siteSettings.email);
+    } catch (mailErr) {
+      console.error("Failed to send SMTP email notification:", mailErr);
+    }
+  }
   res.json({ success: true, booking: newBooking });
 });
 app.patch("/api/bookings/:id", (req, res) => {

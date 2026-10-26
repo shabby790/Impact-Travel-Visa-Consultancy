@@ -1,0 +1,8 @@
+{
+  "host": "mail.impactvisa.com.pk",
+  "port": 465,
+  "secure": true,
+  "user": "info@impactvisa.com.pk",
+  "pass": "",
+  "fromEmail": "info@impactvisa.com.pk"
+}

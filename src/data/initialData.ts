@@ -131,11 +131,15 @@ export const INITIAL_MENUS = [
   { id: 'm-5', label: 'AI Visa Advisor', url: '#ai-advisor', showInHeader: true, showInFooter: false, order: 5 }
 ];
 
+import siteConfig from './siteConfig.json';
+
 export const INITIAL_SETTINGS = {
-  brandName: 'Impact Travel & Visa Consultancy',
-  tagline: 'Your Trusted Gateway to Global Education, Tourism & Sacred Journeys',
-  phone: '+92 300 1234567',
-  email: 'info@impactvisa.com.pk',
-  address: 'Office # 402, Blue Area, Islamabad, Pakistan',
-  logoUrl: ''
+  brandName: siteConfig.brandName || 'Impact Travel & Visa Consultancy',
+  tagline: siteConfig.tagline || 'Your Trusted Gateway to Global Education, Tourism & Sacred Journeys',
+  phone: siteConfig.phone || '+92 300 1234567',
+  email: siteConfig.email || 'info@impactvisa.com.pk',
+  address: siteConfig.address || 'Office # 402, Blue Area, Islamabad, Pakistan',
+  logoUrl: siteConfig.logoUrl || '',
+  footerLogoUrl: siteConfig.footerLogoUrl || ''
 };
+
