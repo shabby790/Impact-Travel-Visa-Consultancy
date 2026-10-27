@@ -89,6 +89,22 @@ interface Analytics {
   activeCountriesCount: number;
 }
 
+const SCHENGEN_COUNTRY_IDS = new Set([
+  'austria', 'belgium', 'bulgaria', 'croatia', 'czechia', 'czech-republic',
+  'denmark', 'estonia', 'finland', 'france', 'germany', 'greece',
+  'hungary', 'iceland', 'italy', 'latvia', 'liechtenstein', 'lithuania',
+  'luxembourg', 'malta', 'netherlands', 'norway', 'poland', 'portugal',
+  'romania', 'slovakia', 'slovenia', 'spain', 'sweden', 'switzerland'
+]);
+
+const isSchengenCountry = (country: Country) => {
+  if (!country) return false;
+  if ((country.region || '').toLowerCase() === 'schengen') return true;
+  const id = (country.id || '').toLowerCase();
+  const name = (country.name || '').toLowerCase();
+  return SCHENGEN_COUNTRY_IDS.has(id) || SCHENGEN_COUNTRY_IDS.has(name);
+};
+
 // Helper to render text with clickable links
 const renderTextWithLinks = (text: string) => {
   if (!text) return null;
@@ -698,13 +714,14 @@ export default function App() {
   };
 
   const REGION_FILTERS = [
-    { id: 'all', label: '🌍 All Regions' },
+    { id: 'all', label: '🌍 All Destinations' },
+    { id: 'Schengen', label: '🇪🇺 Schengen Visas (29)' },
     { id: 'Asia', label: '🌏 Asia' },
     { id: 'Europe', label: '🏰 Europe' },
-    { id: 'Africa', label: '🦁 Africa' },
+    { id: 'Middle East', label: '🕌 Middle East' },
     { id: 'America', label: '🗽 America' },
-    { id: 'Australia & New Zealand', label: '🦘 Australia & New Zealand' },
-    { id: 'Middle East', label: '🕌 Middle East' }
+    { id: 'Africa', label: '🦁 Africa' },
+    { id: 'Australia & New Zealand', label: '🦘 Australia & New Zealand' }
   ];
 
   const filteredCountries = countries.filter(c => {
@@ -712,13 +729,18 @@ export default function App() {
     const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           c.region.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           c.code.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRegion = selectedRegion === 'all' 
-      ? true 
-      : selectedRegion === 'America' 
-        ? c.region.toLowerCase().includes('america') 
-        : (selectedRegion === 'Australia & New Zealand' || selectedRegion === 'Oceania')
-          ? (c.region === 'Oceania' || c.name.includes('Australia') || c.name.includes('New Zealand'))
-          : c.region.toLowerCase() === selectedRegion.toLowerCase();
+    let matchesRegion = true;
+    if (selectedRegion === 'Schengen') {
+      matchesRegion = isSchengenCountry(c);
+    } else if (selectedRegion === 'Europe') {
+      matchesRegion = c.region.toLowerCase() === 'europe' || (c.region.toLowerCase() === 'schengen' && isSchengenCountry(c));
+    } else if (selectedRegion === 'America') {
+      matchesRegion = c.region.toLowerCase().includes('america');
+    } else if (selectedRegion === 'Australia & New Zealand' || selectedRegion === 'Oceania') {
+      matchesRegion = c.region === 'Oceania' || c.name.includes('Australia') || c.name.includes('New Zealand');
+    } else if (selectedRegion !== 'all') {
+      matchesRegion = c.region.toLowerCase() === selectedRegion.toLowerCase();
+    }
     const matchesLetter = selectedLetter === 'all' || c.name.toUpperCase().startsWith(selectedLetter.toUpperCase());
     return matchesSearch && matchesRegion && matchesLetter;
   });
@@ -772,6 +794,11 @@ export default function App() {
 
           {/* Visa Categories Available */}
           <div className="flex flex-wrap gap-1.5 mb-3 relative z-10">
+            {isSchengenCountry(country) && (
+              <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold bg-blue-50 text-blue-800 border border-blue-200/80 flex items-center gap-1 shadow-2xs">
+                🇪🇺 Schengen State
+              </span>
+            )}
             {country.visitVisa && (
               <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                 ✈️ Visit / Tourist Visa
@@ -847,7 +874,7 @@ export default function App() {
         </div>
         <div className="flex items-center space-x-2 sm:space-x-4">
           <span className="hidden sm:inline-flex items-center text-[11px] font-bold text-emerald-300/90 bg-slate-900 border border-slate-800 px-2.5 py-0.5 rounded-md">
-            🌍 53 Destinations
+            🌍 {countries.length || 64} Destinations
           </span>
           <span className="hidden lg:inline text-slate-400 text-[11px] truncate max-w-xs">
             <MapPin className="w-3.5 h-3.5 inline mr-1 text-emerald-400" /> {settings.address}
@@ -921,7 +948,7 @@ export default function App() {
               <Globe className="w-4 h-4" />
               <span>Destinations</span>
               <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full">
-                53
+                {countries.length || 64}
               </span>
             </button>
 
@@ -1065,10 +1092,10 @@ export default function App() {
                       <div className="flex items-center space-x-2">
                         <span>Destinations & Visas</span>
                         <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-1.5 py-0.2 rounded-full">
-                          53 Countries
+                          {countries.length || 64} Countries
                         </span>
                       </div>
-                      <div className="text-[10px] text-slate-400 font-normal">Browse all 53 countries with processing times</div>
+                      <div className="text-[10px] text-slate-400 font-normal">Browse all {countries.length || 64} countries with processing times</div>
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -1192,7 +1219,7 @@ export default function App() {
                     Your Pathway to <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">Global Horizons</span>
                   </h1>
                   <p className="text-lg text-slate-300 max-w-2xl leading-relaxed">
-                    Expert consultancy for 50+ Global Destinations, Student Visas, Tourist Visas, Umrah packages, and Private Tours. Get accurate financial proofs, processing timelines, and official downloadable forms instantly.
+                    Expert consultancy for {countries.length || 64}+ Global Destinations, Student Visas, Tourist Visas, Umrah packages, and Private Tours. Get accurate financial proofs, processing timelines, and official downloadable forms instantly.
                   </p>
                   
                   {/* Search Bar */}
@@ -1219,8 +1246,8 @@ export default function App() {
                     <button onClick={() => { setSelectedCategory('visit'); setActiveTab('destinations'); }} className="bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-300 transition">
                       ✈️ Visit / Tourist Visas
                     </button>
-                    <button onClick={() => { setSelectedRegion('Europe'); setActiveTab('destinations'); }} className="bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-300 transition">
-                      🇪🇺 Schengen Visas
+                    <button onClick={() => { setSelectedRegion('Schengen'); setCurrentPage(1); }} className="bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/60 text-xs font-bold px-3 py-1.5 rounded-lg text-emerald-300 transition flex items-center space-x-1 shadow-sm">
+                      <span>🇪🇺 Schengen Visas (29)</span>
                     </button>
                     <button onClick={() => { setSelectedCategory('umrah'); setActiveTab('destinations'); }} className="bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-300 transition">
                       🕋 Umrah Packages
@@ -1349,7 +1376,7 @@ export default function App() {
               <div className="flex justify-between items-end mb-10">
                 <div>
                   <span className="text-emerald-600 font-extrabold text-xs uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full">Global Destinations</span>
-                  <h2 className="text-3xl font-extrabold text-slate-900 mt-2">Explore 50+ Worldwide Visa Guides</h2>
+                  <h2 className="text-3xl font-extrabold text-slate-900 mt-2">Explore {countries.length || 64} Worldwide Visa Guides</h2>
                 </div>
                 <button 
                   onClick={() => setActiveTab('destinations')}
@@ -1375,6 +1402,31 @@ export default function App() {
                   </button>
                 ))}
               </div>
+
+              {selectedRegion === 'Schengen' && (
+                <div className="bg-gradient-to-r from-blue-950 via-indigo-900 to-slate-900 text-white p-5 rounded-3xl mb-6 shadow-xl border border-blue-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center space-x-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-2xl shrink-0 shadow-inner">
+                      🇪🇺
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-extrabold text-base text-white">Schengen Area Visa Guides (All 29 Countries)</h3>
+                        <span className="bg-emerald-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider">Official 2026 Master Guide</span>
+                      </div>
+                      <p className="text-xs text-blue-200 mt-1 max-w-2xl">
+                        Showing all 29 official Schengen states with direct Pakistan appointment routes (VFS, VIDEX, GVC World, e-Konsulat & Embassy links).
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setSelectedRegion('all'); setCurrentPage(1); }}
+                    className="text-xs bg-white/10 hover:bg-white/20 text-white font-bold px-4 py-2.5 rounded-xl border border-white/20 transition shrink-0 hover:border-emerald-400"
+                  >
+                    Show All {countries.length || 64} Countries
+                  </button>
+                </div>
+              )}
 
               {/* Alphabetical A-Z Filter Bar */}
               <div className="flex flex-wrap gap-1.5 mb-8 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm items-center">
@@ -1487,7 +1539,7 @@ export default function App() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
               <div>
-                <h2 className="text-3xl font-extrabold text-slate-900">All Destinations & Visa Guides (50+ Countries)</h2>
+                <h2 className="text-3xl font-extrabold text-slate-900">All Destinations & Visa Guides ({countries.length || 64} Countries)</h2>
                 <p className="text-slate-500 text-sm mt-1">Select any country to view official visit, tourist, and embassy requirements.</p>
               </div>
               
@@ -1521,6 +1573,31 @@ export default function App() {
                 </button>
               ))}
             </div>
+
+            {selectedRegion === 'Schengen' && (
+              <div className="bg-gradient-to-r from-blue-950 via-indigo-900 to-slate-900 text-white p-5 rounded-3xl mb-6 shadow-xl border border-blue-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center space-x-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-2xl shrink-0 shadow-inner">
+                    🇪🇺
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="font-extrabold text-base text-white">Schengen Area Visa Guides (All 29 Countries)</h3>
+                      <span className="bg-emerald-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider">Official 2026 Master Guide</span>
+                    </div>
+                    <p className="text-xs text-blue-200 mt-1 max-w-2xl">
+                      Showing all 29 official Schengen states with direct Pakistan appointment routes (VFS, VIDEX, GVC World, e-Konsulat & Embassy links).
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setSelectedRegion('all'); setCurrentPage(1); }}
+                  className="text-xs bg-white/10 hover:bg-white/20 text-white font-bold px-4 py-2.5 rounded-xl border border-white/20 transition shrink-0 hover:border-emerald-400"
+                >
+                  Show All {countries.length || 64} Countries
+                </button>
+              </div>
+            )}
 
             {/* Alphabetical A-Z Filter Bar */}
             <div className="flex flex-wrap gap-1.5 mb-8 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm items-center">
