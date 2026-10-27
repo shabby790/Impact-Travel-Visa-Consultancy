@@ -432,6 +432,23 @@ export default function App() {
       try {
         localStorage.setItem('site_settings', JSON.stringify(resolvedSettings));
       } catch (e) {}
+
+      // AUTO-SYNC: If the browser has user-customized settings in localStorage,
+      // automatically sync them to server disk files so that git push carries them to Vercel
+      if (
+        localSettings &&
+        localSettings.brandName &&
+        (localSettings.brandName !== settingsRes?.brandName ||
+         localSettings.phone !== settingsRes?.phone ||
+         localSettings.address !== settingsRes?.address ||
+         (localSettings.logoUrl && localSettings.logoUrl.startsWith('data:')))
+      ) {
+        fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(localSettings)
+        }).catch(() => {});
+      }
       setAnalytics(analyticsRes || { totalBookings: 0, pendingBookings: 0, totalFormsDownloaded: 0, activeCountriesCount: normalizedCountries.length });
     } catch (err) {
       console.error('Failed to fetch data, falling back to initial data', err);
