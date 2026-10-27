@@ -413,18 +413,19 @@ export default function App() {
         }
       })();
 
-      // Robust version-aware merge: never let an older server response or default file wipe newer local settings
+      // Robust version-aware merge: prioritize user settings over default files
       let resolvedSettings = { ...INITIAL_SETTINGS };
+
+      if (settingsRes && settingsRes.brandName) {
+        resolvedSettings = { ...resolvedSettings, ...settingsRes };
+      }
+
       const serverVersion = Number(settingsRes?.version || settingsRes?.updatedAt || 0);
       const localVersion = Number(localSettings?.version || localSettings?.updatedAt || 0);
 
       if (localSettings && (localSettings.brandName || localSettings.phone || localSettings.logoUrl)) {
-        resolvedSettings = { ...resolvedSettings, ...localSettings };
-      }
-
-      if (settingsRes && settingsRes.brandName) {
-        if (serverVersion >= localVersion || !localSettings?.brandName) {
-          resolvedSettings = { ...resolvedSettings, ...settingsRes };
+        if (localVersion >= serverVersion || serverVersion <= 1) {
+          resolvedSettings = { ...resolvedSettings, ...localSettings };
         }
       }
 
