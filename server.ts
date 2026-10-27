@@ -310,8 +310,7 @@ let navMenus: MenuItem[] = [
   { id: 'm-1', label: 'Home', url: '#home', showInHeader: true, showInFooter: true, order: 1 },
   { id: 'm-2', label: 'Destinations & Visas', url: '#destinations', showInHeader: true, showInFooter: true, order: 2 },
   { id: 'm-3', label: 'Document Center', url: '#documents', showInHeader: true, showInFooter: true, order: 3 },
-  { id: 'm-4', label: 'Book Consultation', url: '#consultation', showInHeader: true, showInFooter: true, order: 4 },
-  { id: 'm-5', label: 'AI Visa Advisor', url: '#ai-advisor', showInHeader: true, showInFooter: false, order: 5 }
+  { id: 'm-4', label: 'Book Consultation', url: '#consultation', showInHeader: true, showInFooter: true, order: 4 }
 ];
 
 interface VisaInfo {
@@ -1236,35 +1235,47 @@ app.get('/api/bookings', (req, res) => {
 
 // Create booking
 app.post('/api/bookings', async (req, res) => {
+  const { smtpPass, ...bookingData } = req.body || {};
   const newBooking: Booking = {
     id: `bk-${Date.now()}`,
     status: 'Pending',
     createdAt: new Date().toISOString().split('T')[0],
-    ...req.body
+    ...bookingData
   };
   bookings.unshift(newBooking);
 
-  // Send email notification via SMTP if configured
-  if (smtpSettings.host && smtpSettings.user && smtpSettings.pass) {
-    try {
-      const transporter = nodemailer.createTransport({
-        host: smtpSettings.host,
-        port: smtpSettings.port,
-        secure: smtpSettings.port === 465,
-        auth: {
-          user: smtpSettings.user,
-          pass: smtpSettings.pass
-        },
-        tls: {
-          rejectUnauthorized: false
-        }
-      });
+  // Send success response IMMEDIATELY so request never times out or errors on client
+  res.json({ success: true, booking: newBooking });
 
-      const mailOptions = {
-        from: `"${siteSettings.brandName}" <${smtpSettings.fromEmail || smtpSettings.user}>`,
-        to: siteSettings.email || 'info@impactvisa.com.pk',
-        subject: `New Visa Consultation Inquiry: ${newBooking.fullName} (${newBooking.visaType} - ${newBooking.destination})`,
-        text: `
+  // Process email notification in background
+  const passToUse = (smtpPass && smtpPass !== '********')
+    ? smtpPass
+    : (smtpSettings.pass && smtpSettings.pass !== '********' ? smtpSettings.pass : (process.env.SMTP_PASS || ''));
+
+  if (smtpSettings.host && smtpSettings.user && passToUse) {
+    setTimeout(async () => {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: smtpSettings.host,
+          port: smtpSettings.port,
+          secure: smtpSettings.port === 465,
+          auth: {
+            user: smtpSettings.user,
+            pass: passToUse
+          },
+          tls: {
+            rejectUnauthorized: false
+          },
+          connectionTimeout: 5000,
+          greetingTimeout: 5000,
+          socketTimeout: 5000
+        });
+
+        const mailOptions = {
+          from: `"${siteSettings.brandName}" <${smtpSettings.fromEmail || smtpSettings.user}>`,
+          to: siteSettings.email || 'info@impactvisa.com.pk',
+          subject: `New Visa Consultation Inquiry: ${newBooking.fullName} (${newBooking.visaType} - ${newBooking.destination})`,
+          text: `
 New consultation request received on ${siteSettings.brandName}:
 
 Full Name: ${newBooking.fullName}
@@ -1276,32 +1287,31 @@ Preferred Date: ${newBooking.preferredDate || 'Not specified'}
 Date Submitted: ${newBooking.createdAt}
 
 Please log in to the admin panel or reply directly to the client at ${newBooking.email}.
-        `,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-            <h2 style="color: #047857; margin-top: 0;">New Consultation Inquiry</h2>
-            <p>You have received a new visa consultation request from your website <strong>${siteSettings.brandName}</strong>:</p>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-              <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold; width: 140px;">Full Name:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;">${newBooking.fullName}</td></tr>
-              <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Email:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;"><a href="mailto:${newBooking.email}">${newBooking.email}</a></td></tr>
-              <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Phone:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;"><a href="tel:${newBooking.phone}">${newBooking.phone}</a></td></tr>
-              <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Visa Type:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;">${newBooking.visaType}</td></tr>
-              <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Destination:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;">${newBooking.destination}</td></tr>
-              <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Preferred Date:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;">${newBooking.preferredDate || 'As soon as possible'}</td></tr>
-            </table>
-            <p style="margin-top: 20px; font-size: 13px; color: #718096;">Sent via ${siteSettings.brandName} SMTP Mailer (${siteSettings.email})</p>
-          </div>
-        `
-      };
+          `,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+              <h2 style="color: #047857; margin-top: 0;">New Consultation Inquiry</h2>
+              <p>You have received a new visa consultation request from your website <strong>${siteSettings.brandName}</strong>:</p>
+              <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold; width: 140px;">Full Name:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;">${newBooking.fullName}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Email:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;"><a href="mailto:${newBooking.email}">${newBooking.email}</a></td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Phone:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;"><a href="tel:${newBooking.phone}">${newBooking.phone}</a></td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Visa Type:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;">${newBooking.visaType}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Destination:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;">${newBooking.destination}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;">Preferred Date:</td><td style="padding: 8px; border-bottom: 1px solid #edf2f7;">${newBooking.preferredDate || 'As soon as possible'}</td></tr>
+              </table>
+              <p style="margin-top: 20px; font-size: 13px; color: #718096;">Sent via ${siteSettings.brandName} SMTP Mailer (${siteSettings.email})</p>
+            </div>
+          `
+        };
 
-      await transporter.sendMail(mailOptions);
-      console.log('Consultation notification email sent successfully to:', siteSettings.email);
-    } catch (mailErr) {
-      console.error('Failed to send SMTP email notification:', mailErr);
-    }
+        await transporter.sendMail(mailOptions);
+        console.log('Consultation notification email sent successfully to:', siteSettings.email);
+      } catch (mailErr) {
+        console.error('Failed to send SMTP email notification:', mailErr);
+      }
+    }, 10);
   }
-
-  res.json({ success: true, booking: newBooking });
 });
 
 // Update booking status

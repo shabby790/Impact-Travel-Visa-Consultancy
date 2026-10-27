@@ -127,8 +127,7 @@ export const INITIAL_MENUS = [
   { id: 'm-1', label: 'Home', url: '#home', showInHeader: true, showInFooter: true, order: 1 },
   { id: 'm-2', label: 'Destinations & Visas', url: '#destinations', showInHeader: true, showInFooter: true, order: 2 },
   { id: 'm-3', label: 'Document Center', url: '#documents', showInHeader: true, showInFooter: true, order: 3 },
-  { id: 'm-4', label: 'Book Consultation', url: '#consultation', showInHeader: true, showInFooter: true, order: 4 },
-  { id: 'm-5', label: 'AI Visa Advisor', url: '#ai-advisor', showInHeader: true, showInFooter: false, order: 5 }
+  { id: 'm-4', label: 'Book Consultation', url: '#consultation', showInHeader: true, showInFooter: true, order: 4 }
 ];
 
 import siteConfig from './siteConfig.json';
