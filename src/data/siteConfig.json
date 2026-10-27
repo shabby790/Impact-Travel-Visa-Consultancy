@@ -1,11 +1,11 @@
 {
-  "brandName": "Impact Travel & Visa Consultancy",
-  "tagline": "Your Trusted Gateway to Global Education, Tourism & Sacred Journeys",
-  "phone": "+92 300 1234567",
+  "brandName": "Impact Visas & Immigration",
+  "tagline": "Consultants (Private) Limited - Gateway to Global Horizons",
+  "phone": "+92 326500830",
   "email": "info@impactvisa.com.pk",
-  "address": "Office # 402, Blue Area, Islamabad, Pakistan",
-  "logoUrl": "/logo.jpg",
-  "footerLogoUrl": "/footer-logo.jpg",
-  "version": 1,
-  "updatedAt": 1
+  "address": "72 Main Boulevard Gulberg II, Lahore",
+  "logoUrl": "/logo.svg",
+  "footerLogoUrl": "/logo.svg",
+  "version": 3000000000000,
+  "updatedAt": 3000000000000
 }

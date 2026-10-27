@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" style="background:#ffffff;">
+  <!-- Interlocked rotated square diamonds -->
+  <g transform="translate(400, 180)">
+    <!-- Diamond 1: Dark Blue -->
+    <rect x="-140" y="-50" width="100" height="100" rx="6" fill="none" stroke="#2B3482" stroke-width="22" transform="rotate(45 -90 0)"/>
+    <!-- Diamond 2: Orange -->
+    <rect x="-80" y="-50" width="100" height="100" rx="6" fill="none" stroke="#E87928" stroke-width="22" transform="rotate(45 -30 0)"/>
+    <!-- Diamond 3: Dark Blue -->
+    <rect x="-20" y="-50" width="100" height="100" rx="6" fill="none" stroke="#2B3482" stroke-width="22" transform="rotate(45 30 0)"/>
+    <!-- Diamond 4: Orange -->
+    <rect x="40" y="-50" width="100" height="100" rx="6" fill="none" stroke="#E87928" stroke-width="22" transform="rotate(45 90 0)"/>
+  </g>
+
+  <!-- Title: IMPACT VISAS & IMMIGRATION -->
+  <text x="400" y="380" font-family="'Inter', 'Arial Black', sans-serif" font-weight="900" font-size="38" fill="#2B3482" text-anchor="middle" letter-spacing="1">
+    IMPACT VISAS &amp; IMMIGRATION
+  </text>
+
+  <!-- Subtitle: CONSULTANTS (PRIVATE) LIMITED -->
+  <text x="400" y="430" font-family="'Inter', 'Arial', sans-serif" font-weight="800" font-size="28" fill="#E87928" text-anchor="middle" letter-spacing="2">
+    CONSULTANTS (PRIVATE) LIMITED
+  </text>
+</svg>

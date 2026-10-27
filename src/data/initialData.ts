@@ -134,11 +134,11 @@ export const INITIAL_MENUS = [
 import siteConfig from './siteConfig.json';
 
 export const INITIAL_SETTINGS = {
-  brandName: siteConfig.brandName || 'Impact Travel & Visa Consultancy',
-  tagline: siteConfig.tagline || 'Your Trusted Gateway to Global Education, Tourism & Sacred Journeys',
-  phone: siteConfig.phone || '+92 300 1234567',
+  brandName: siteConfig.brandName || 'Impact Visas & Immigration',
+  tagline: siteConfig.tagline || 'Consultants (Private) Limited - Gateway to Global Horizons',
+  phone: siteConfig.phone || '+92 326500830',
   email: siteConfig.email || 'info@impactvisa.com.pk',
-  address: siteConfig.address || 'Office # 402, Blue Area, Islamabad, Pakistan',
+  address: siteConfig.address || '72 Main Boulevard Gulberg II, Lahore',
   logoUrl: siteConfig.logoUrl || '/logo.jpg',
   footerLogoUrl: siteConfig.footerLogoUrl || '/footer-logo.jpg'
 };
