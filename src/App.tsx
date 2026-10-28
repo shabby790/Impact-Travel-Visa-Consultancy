@@ -2930,6 +2930,21 @@ export default function App() {
                 if (isSchengenCountry(selectedCountry) && activeVisaModalTab === 'tourist-checklist') {
                   return (
                     <div className="space-y-6">
+                      {/* Top Navigation Row - Back to Overview */}
+                      <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-200">
+                        <button
+                          onClick={() => setActiveVisaModalTab('visit')}
+                          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs transition shadow-md group"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-emerald-400 group-hover:-translate-x-0.5 transition" />
+                          <span>← Back to {selectedCountry.name} Overview & Guide</span>
+                        </button>
+                        <span className="text-xs font-extrabold text-slate-500 hidden sm:inline-flex items-center gap-1.5">
+                          <span>{selectedCountry.flag}</span>
+                          <span>{selectedCountry.name} Tourist Checklist</span>
+                        </span>
+                      </div>
+
                       <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 space-y-2">
                         <h3 className="text-lg font-extrabold text-emerald-950 flex items-center gap-2">
                           <span>📑</span> Tourist Visa Document Checklist
@@ -2963,6 +2978,23 @@ export default function App() {
                           </div>
                         ))}
                       </div>
+
+                      {/* Bottom Navigation Row - Back to Overview & Consultation CTA */}
+                      <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                        <button
+                          onClick={() => setActiveVisaModalTab('visit')}
+                          className="inline-flex items-center justify-center space-x-2 px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs transition shadow-md"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-emerald-400" />
+                          <span>Back to {selectedCountry.name} Overview & Guide</span>
+                        </button>
+                        <button 
+                          onClick={() => { setSelectedCountry(null); setActiveTab('consultation'); }}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-xs transition shadow-md"
+                        >
+                          Book Consultation for {selectedCountry.name}
+                        </button>
+                      </div>
                     </div>
                   );
                 }
@@ -2970,6 +3002,21 @@ export default function App() {
                 if (isSchengenCountry(selectedCountry) && activeVisaModalTab === 'business-checklist') {
                   return (
                     <div className="space-y-6">
+                      {/* Top Navigation Row - Back to Overview */}
+                      <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-200">
+                        <button
+                          onClick={() => setActiveVisaModalTab('visit')}
+                          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs transition shadow-md group"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-emerald-400 group-hover:-translate-x-0.5 transition" />
+                          <span>← Back to {selectedCountry.name} Overview & Guide</span>
+                        </button>
+                        <span className="text-xs font-extrabold text-slate-500 hidden sm:inline-flex items-center gap-1.5">
+                          <span>{selectedCountry.flag}</span>
+                          <span>{selectedCountry.name} Business Checklist</span>
+                        </span>
+                      </div>
+
                       <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 space-y-2">
                         <h3 className="text-lg font-extrabold text-blue-950 flex items-center gap-2">
                           <span>💼</span> Business Visa Document Checklist
@@ -3001,6 +3048,23 @@ export default function App() {
                           </div>
                         ))}
                       </div>
+
+                      {/* Bottom Navigation Row - Back to Overview & Consultation CTA */}
+                      <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                        <button
+                          onClick={() => setActiveVisaModalTab('visit')}
+                          className="inline-flex items-center justify-center space-x-2 px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs transition shadow-md"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-emerald-400" />
+                          <span>Back to {selectedCountry.name} Overview & Guide</span>
+                        </button>
+                        <button 
+                          onClick={() => { setSelectedCountry(null); setActiveTab('consultation'); }}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-xs transition shadow-md"
+                        >
+                          Book Consultation for {selectedCountry.name}
+                        </button>
+                      </div>
                     </div>
                   );
                 }
@@ -3008,6 +3072,21 @@ export default function App() {
                 if (isSchengenCountry(selectedCountry) && activeVisaModalTab === 'core-rules') {
                   return (
                     <div className="space-y-6">
+                      {/* Top Navigation Row - Back to Overview */}
+                      <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-200">
+                        <button
+                          onClick={() => setActiveVisaModalTab('visit')}
+                          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs transition shadow-md group"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-emerald-400 group-hover:-translate-x-0.5 transition" />
+                          <span>← Back to {selectedCountry.name} Overview & Guide</span>
+                        </button>
+                        <span className="text-xs font-extrabold text-slate-500 hidden sm:inline-flex items-center gap-1.5">
+                          <span>{selectedCountry.flag}</span>
+                          <span>{selectedCountry.name} Core Rules & Sources</span>
+                        </span>
+                      </div>
+
                       <div className="bg-slate-900 text-white rounded-2xl p-6 space-y-3">
                         <h3 className="text-lg font-extrabold flex items-center gap-2 text-emerald-400">
                           <span>📜</span> Core Rules & Official Guidance
@@ -3029,7 +3108,7 @@ export default function App() {
                         </div>
 
                         <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                          <span className="font-extrabold text-xs text-slate-900 uppercase tracking-wider block mb-1">🛂 Passport validity</span>
+                          <span className="font-extrabold text-xs text-slate-900 uppercase tracking-wider block mb-1">Passport validity</span>
                           <p className="text-xs text-slate-700 leading-relaxed">Generally valid at least 3 months after intended departure from Schengen and issued within the previous 10 years; check mission-specific rules.</p>
                         </div>
 
@@ -3096,6 +3175,23 @@ export default function App() {
                             </div>
                           ))}
                         </div>
+                      </div>
+
+                      {/* Bottom Navigation Row - Back to Overview & Consultation CTA */}
+                      <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                        <button
+                          onClick={() => setActiveVisaModalTab('visit')}
+                          className="inline-flex items-center justify-center space-x-2 px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs transition shadow-md"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-emerald-400" />
+                          <span>Back to {selectedCountry.name} Overview & Guide</span>
+                        </button>
+                        <button 
+                          onClick={() => { setSelectedCountry(null); setActiveTab('consultation'); }}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-xs transition shadow-md"
+                        >
+                          Book Consultation for {selectedCountry.name}
+                        </button>
                       </div>
                     </div>
                   );
