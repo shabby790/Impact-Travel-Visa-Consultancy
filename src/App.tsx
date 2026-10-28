@@ -89,20 +89,22 @@ interface Analytics {
   activeCountriesCount: number;
 }
 
-const SCHENGEN_COUNTRY_IDS = new Set([
-  'austria', 'belgium', 'bulgaria', 'croatia', 'czechia', 'czech-republic',
+const SCHENGEN_KEYWORDS = [
+  'austria', 'belgium', 'bulgaria', 'croatia', 'czech', 'czechia',
   'denmark', 'estonia', 'finland', 'france', 'germany', 'greece',
   'hungary', 'iceland', 'italy', 'latvia', 'liechtenstein', 'lithuania',
   'luxembourg', 'malta', 'netherlands', 'norway', 'poland', 'portugal',
-  'romania', 'slovakia', 'slovenia', 'spain', 'sweden', 'switzerland'
-]);
+  'romania', 'slovakia', 'slovenia', 'spain', 'sweden', 'switzerland',
+  'schengen'
+];
 
-const isSchengenCountry = (country: Country) => {
+const isSchengenCountry = (country: Country | null) => {
   if (!country) return false;
-  if ((country.region || '').toLowerCase() === 'schengen') return true;
-  const id = (country.id || '').toLowerCase();
-  const name = (country.name || '').toLowerCase();
-  return SCHENGEN_COUNTRY_IDS.has(id) || SCHENGEN_COUNTRY_IDS.has(name);
+  const reg = (country.region || '').toLowerCase();
+  if (reg.includes('schengen')) return true;
+  const id = (country.id || '').toLowerCase().trim();
+  const name = (country.name || '').toLowerCase().trim();
+  return SCHENGEN_KEYWORDS.some(k => id.includes(k) || name.includes(k) || reg.includes(k));
 };
 
 // Helper to render text with clickable links
@@ -254,7 +256,7 @@ export default function App() {
 
   // Modal State
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
-  const [activeVisaModalTab, setActiveVisaModalTab] = useState<'visit' | 'umrah'>('visit');
+  const [activeVisaModalTab, setActiveVisaModalTab] = useState<'visit' | 'umrah' | 'tourist-checklist' | 'business-checklist' | 'core-rules'>('visit');
 
   // Consultation Booking Form State
   const [bookingForm, setBookingForm] = useState({
@@ -2850,7 +2852,50 @@ export default function App() {
             </div>
 
             {/* Visa Type Header / Tabs */}
-            {selectedCountry?.id === 'saudi-arabia' ? (
+            {isSchengenCountry(selectedCountry) ? (
+              <div className="px-4 sm:px-6 pt-3 pb-3 bg-slate-950 border-b border-slate-800 flex flex-wrap gap-2 overflow-x-auto">
+                <button 
+                  onClick={() => setActiveVisaModalTab('visit')}
+                  className={`px-3.5 py-2 rounded-xl font-black text-xs transition flex items-center gap-1.5 shadow-sm ${
+                    activeVisaModalTab === 'visit' || !['tourist-checklist', 'business-checklist', 'core-rules'].includes(activeVisaModalTab)
+                      ? 'bg-emerald-600 text-white ring-2 ring-emerald-400/50' 
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  <span>📋 Overview & Process</span>
+                </button>
+                <button 
+                  onClick={() => setActiveVisaModalTab('tourist-checklist')}
+                  className={`px-3.5 py-2 rounded-xl font-black text-xs transition flex items-center gap-1.5 shadow-sm ${
+                    activeVisaModalTab === 'tourist-checklist'
+                      ? 'bg-emerald-600 text-white ring-2 ring-emerald-400/50' 
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  <span>📑 Tourist Visa Check List</span>
+                </button>
+                <button 
+                  onClick={() => setActiveVisaModalTab('business-checklist')}
+                  className={`px-3.5 py-2 rounded-xl font-black text-xs transition flex items-center gap-1.5 shadow-sm ${
+                    activeVisaModalTab === 'business-checklist'
+                      ? 'bg-blue-600 text-white ring-2 ring-blue-400/50' 
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  <span>💼 Business Visa Check List</span>
+                </button>
+                <button 
+                  onClick={() => setActiveVisaModalTab('core-rules')}
+                  className={`px-3.5 py-2 rounded-xl font-black text-xs transition flex items-center gap-1.5 shadow-sm ${
+                    activeVisaModalTab === 'core-rules'
+                      ? 'bg-indigo-600 text-white ring-2 ring-indigo-400/50' 
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  <span>📜 Core Rules & Official Sources</span>
+                </button>
+              </div>
+            ) : selectedCountry?.id === 'saudi-arabia' ? (
               <div className="px-6 pt-6 bg-slate-50 border-b border-slate-200 flex space-x-2">
                 <button 
                   onClick={() => setActiveVisaModalTab('umrah')}
@@ -2882,6 +2927,180 @@ export default function App() {
             {/* Modal Body Content */}
             <div className="p-6 sm:p-8 space-y-8 bg-white flex-grow">
               {(() => {
+                if (isSchengenCountry(selectedCountry) && activeVisaModalTab === 'tourist-checklist') {
+                  return (
+                    <div className="space-y-6">
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 space-y-2">
+                        <h3 className="text-lg font-extrabold text-emerald-950 flex items-center gap-2">
+                          <span>📑</span> Tourist Visa Document Checklist
+                        </h3>
+                        <p className="text-xs text-emerald-800 leading-relaxed font-medium">
+                          This is a general master list, not a substitute for the destination country's own checklist. Include only applicable documents and follow the mission's prescribed order.
+                        </p>
+                      </div>
+
+                      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+                        {[
+                          "Original valid passport; check validity/blank pages and prior passports if available",
+                          "Completed country-specific Schengen application form, signed where required",
+                          "Recent ICAO-compliant passport photograph",
+                          "CNIC copy; FRC or civil-status documents if requested",
+                          "Travel medical insurance valid throughout Schengen stay (minimum €30,000 emergency medical/repatriation cover generally required)",
+                          "Travel itinerary and return flight reservation/proposed itinerary as required",
+                          "Accommodation evidence for all nights (hotel booking or host invitation/accommodation proof)",
+                          "Day-by-day tourism plan and inter-country transport bookings if relevant",
+                          "Personal bank statements (often 3–6 months; follow mission checklist), bank certificate and source-of-funds evidence",
+                          "Employment letter, job title, salary slips and approved leave; OR business registration/ownership evidence; OR student/retirement evidence",
+                          "Tax returns or other income evidence where applicable",
+                          "Evidence of ties to Pakistan and intention to return (employment, business, family, property etc., where relevant)",
+                          "Previous passports, visas and travel history if available",
+                          "Minor applicants: birth certificate, parental consent/guardian documents and parents' IDs as required",
+                          "Translations/legalisation if specifically required by the destination mission"
+                        ].map((item, i) => (
+                          <div key={i} className="flex items-start space-x-3 p-3.5 bg-slate-50 rounded-xl border border-slate-100 hover:border-emerald-200 transition text-sm text-slate-800 font-medium">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (isSchengenCountry(selectedCountry) && activeVisaModalTab === 'business-checklist') {
+                  return (
+                    <div className="space-y-6">
+                      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 space-y-2">
+                        <h3 className="text-lg font-extrabold text-blue-950 flex items-center gap-2">
+                          <span>💼</span> Business Visa Document Checklist
+                        </h3>
+                        <p className="text-xs text-blue-900 leading-relaxed font-medium">
+                          For meetings, trade negotiations, exhibitions and conferences. The business invitation and the Pakistani employer/company letter should clearly explain the genuine purpose and funding.
+                        </p>
+                      </div>
+
+                      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+                        {[
+                          "All core passport, application, photo, insurance and identity documents required for tourist applications",
+                          "Invitation letter from host company in Schengen country, on company letterhead, signed and dated",
+                          "Invitation must explain purpose, exact dates, itinerary/meetings and who pays expenses",
+                          "Host company's registration details/contact information; host ID if requested",
+                          "Letter from Pakistani employer/company explaining business purpose, applicant's role, dates and expense coverage",
+                          "Applicant's employment certificate, salary slips and approved leave; for owner/director: registration, tax and business evidence",
+                          "Proof of existing business relationship: correspondence, contracts, invoices, purchase orders or prior dealings where relevant",
+                          "Trade fair/conference registration or ticket and event details, if applicable",
+                          "Company bank statements and undertaking to pay, if employer/company sponsors; applicant's personal finances where applicable",
+                          "Flight itinerary, accommodation and local transport plan",
+                          "Evidence of return to Pakistan and ongoing employment/business obligations",
+                          "Previous passports, visas and travel history if available",
+                          "Do not present a business visit as employment; confirm that planned activities are permitted under short-stay rules"
+                        ].map((item, i) => (
+                          <div key={i} className="flex items-start space-x-3 p-3.5 bg-slate-50 rounded-xl border border-slate-100 hover:border-blue-200 transition text-sm text-slate-800 font-medium">
+                            <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (isSchengenCountry(selectedCountry) && activeVisaModalTab === 'core-rules') {
+                  return (
+                    <div className="space-y-6">
+                      <div className="bg-slate-900 text-white rounded-2xl p-6 space-y-3">
+                        <h3 className="text-lg font-extrabold flex items-center gap-2 text-emerald-400">
+                          <span>📜</span> Core Rules & Official Guidance
+                        </h3>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          Purpose: Practical starting guide for Pakistani nationals applying for Schengen short-stay (Type C) tourist or business visas.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                          <span className="font-extrabold text-xs text-slate-900 uppercase tracking-wider block mb-1">📍 Where to apply</span>
+                          <p className="text-xs text-slate-700 leading-relaxed">Apply to the country of the main destination/longest stay. If equal stays across countries, apply to the first Schengen country entered.</p>
+                        </div>
+
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                          <span className="font-extrabold text-xs text-slate-900 uppercase tracking-wider block mb-1">⏱️ Application timing</span>
+                          <p className="text-xs text-slate-700 leading-relaxed">Generally no earlier than 6 months and at least 15 calendar days before travel; appointment queues may require much earlier planning.</p>
+                        </div>
+
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                          <span className="font-extrabold text-xs text-slate-900 uppercase tracking-wider block mb-1">🛂 Passport validity</span>
+                          <p className="text-xs text-slate-700 leading-relaxed">Generally valid at least 3 months after intended departure from Schengen and issued within the previous 10 years; check mission-specific rules.</p>
+                        </div>
+
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                          <span className="font-extrabold text-xs text-slate-900 uppercase tracking-wider block mb-1">🏥 Travel Medical Insurance</span>
+                          <p className="text-xs text-slate-700 leading-relaxed">Generally minimum €30,000 emergency medical, hospitalisation and repatriation coverage valid for the Schengen area and entire stay.</p>
+                        </div>
+
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                          <span className="font-extrabold text-xs text-slate-900 uppercase tracking-wider block mb-1">💶 Official Visa Fees</span>
+                          <p className="text-xs text-slate-700 leading-relaxed">Standard short-stay fee generally €90 adults and €45 children aged 6–11; service fees and exemptions may apply. Confirm current fees.</p>
+                        </div>
+
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                          <span className="font-extrabold text-xs text-slate-900 uppercase tracking-wider block mb-1">⏳ Processing Time</span>
+                          <p className="text-xs text-slate-700 leading-relaxed">Normal processing is generally 15 calendar days; may extend up to 45 days in individual cases.</p>
+                        </div>
+
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                          <span className="font-extrabold text-xs text-slate-900 uppercase tracking-wider block mb-1">📝 Application Forms</span>
+                          <p className="text-xs text-slate-700 leading-relaxed">There is no single universal downloadable form for every country workflow: some use online portals, some use VIDEX or a country-specific form.</p>
+                        </div>
+
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                          <span className="font-extrabold text-xs text-slate-900 uppercase tracking-wider block mb-1">🏛️ Representation in Pakistan</span>
+                          <p className="text-xs text-slate-700 leading-relaxed">Some Schengen countries may be represented by another country in Pakistan. This list deliberately flags cases where the exact current representation/route must be reconfirmed on the official page.</p>
+                        </div>
+
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 col-span-1 md:col-span-2">
+                          <span className="font-extrabold text-xs text-slate-900 uppercase tracking-wider block mb-1">🛡️ Appointment Safety & Verification</span>
+                          <p className="text-xs text-slate-700 leading-relaxed">Book only through official embassy/consulate pages or designated providers. Never pay unofficial agents for appointment slots or guaranteed approvals.</p>
+                          <p className="text-[11px] text-slate-500 mt-2 font-medium">Verification date: Links and notes compiled on 27 October 2026 from official government/mission pages and designated providers where identified. Availability, locations, fees and representation can change.</p>
+                        </div>
+                      </div>
+
+                      {/* Official Sources Links */}
+                      <div className="bg-slate-900 text-white rounded-2xl p-6 space-y-4">
+                        <h4 className="text-sm font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                          <ExternalLink className="w-4 h-4" /> Official Government Portals & Sources
+                        </h4>
+                        <div className="space-y-2 text-xs">
+                          {[
+                            { label: "European Commission — Schengen application rules", url: "https://home-affairs.ec.europa.eu/policies/schengen/visa-policy/applying-schengen-visa_en" },
+                            { label: "European Commission — Schengen visa policy / 29 countries", url: "https://home-affairs.ec.europa.eu/policies/schengen/visa-policy_en" },
+                            { label: "Germany — Short-stay visa, appointment & VIDEX guidance", url: "https://pakistan.diplo.de/pk-en/service/visa-shortterm-1673126" },
+                            { label: "Netherlands — Apply in Pakistan; Finland submissions also accepted", url: "https://www.netherlandsworldwide.nl/visa-the-netherlands/schengen-visa/apply-pakistan" },
+                            { label: "France-Visas — Pakistan", url: "https://www.france-visas.gouv.fr/en/pakistan" },
+                            { label: "Switzerland — application procedure and tourist/business checklists", url: "https://www.schweiz-pakistan.eda.admin.ch/en/application-schengen-visa-procedure" },
+                            { label: "Switzerland — where to apply / centres in Pakistan", url: "https://www.schweiz-pakistan.eda.admin.ch/en/where-to-apply-for-a-schengen-visa" },
+                            { label: "Sweden Abroad — visiting Sweden from Pakistan", url: "https://www.swedenabroad.se/en/about-sweden-non-swedish-citizens/pakistan/going-to-sweden/visiting-sweden/" },
+                            { label: "Greece GVC World — Pakistan appointment and centre notice", url: "https://pk-gr.gvcworld.eu/en" }
+                          ].map((source, i) => (
+                            <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-slate-800/80 rounded-xl border border-slate-700/80 gap-2">
+                              <span className="font-semibold text-slate-200">{source.label}</span>
+                              <a 
+                                href={source.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="text-emerald-400 hover:text-emerald-300 underline text-[11px] font-mono break-all inline-flex items-center gap-1 shrink-0"
+                              >
+                                <span>Visit Official Portal</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
                 const visasObj = (selectedCountry as any)?.visas || {};
                 const rawVisaData = 
                   activeVisaModalTab === 'umrah' ? (selectedCountry?.umrahVisa || visasObj.umrah || selectedCountry?.visitVisa || visasObj.visit) :
@@ -2909,6 +3128,41 @@ export default function App() {
 
                 return (
                   <div className="space-y-8">
+                    {/* Direct Schengen Document Checklists Quick Switcher Banner */}
+                    {isSchengenCountry(selectedCountry) && (
+                      <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-emerald-950 text-white p-5 rounded-3xl border border-emerald-500/40 shadow-xl space-y-3">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                          <div className="flex items-center space-x-3">
+                            <span className="text-2xl p-2 bg-emerald-500/20 rounded-xl border border-emerald-400/30">🇪🇺</span>
+                            <div>
+                              <h4 className="font-extrabold text-sm text-white">Schengen Official Master Checklists & Rules</h4>
+                              <p className="text-xs text-emerald-200 mt-0.5">Click any button below to view complete document checklists for {selectedCountry.name}:</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                          <button
+                            onClick={() => setActiveVisaModalTab('tourist-checklist')}
+                            className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold transition shadow-md"
+                          >
+                            <span>📑 Tourist Visa Checklist</span>
+                          </button>
+                          <button
+                            onClick={() => setActiveVisaModalTab('business-checklist')}
+                            className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold transition shadow-md"
+                          >
+                            <span>💼 Business Visa Checklist</span>
+                          </button>
+                          <button
+                            onClick={() => setActiveVisaModalTab('core-rules')}
+                            className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold transition shadow-md"
+                          >
+                            <span>📜 Core Rules & Sources</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Official Portals Quick Action Banner (Book Appointment & Online Application Form) */}
                     {(appointmentLink || onlineFormLink) && (
                       <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 text-white shadow-xl space-y-3.5">
