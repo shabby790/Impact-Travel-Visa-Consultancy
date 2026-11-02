@@ -215,12 +215,28 @@ export default function App() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [menus, setMenus] = useState<NavMenuItem[]>([]);
   
+  const sanitizeSettings = (s: any) => {
+    if (!s) return s;
+    const clean = { ...s };
+    if (clean.phone === '+92 326500830' || clean.phone === '+92 300 1234567') {
+      clean.phone = '';
+    }
+    if (clean.landline === '+92 42 35789000' || clean.landline === '+92 42 1234567') {
+      clean.landline = '';
+    }
+    if (typeof clean.address === 'string' && (clean.address.includes('Gulberg') || clean.address.includes('Blue Area') || clean.address.includes('Siddiq'))) {
+      clean.address = '';
+    }
+    return clean;
+  };
+
   // Initialize settings with localStorage first to prevent any flash or revert of default values
   const [settings, setSettings] = useState<SiteSettings>(() => {
     try {
       const saved = localStorage.getItem('site_settings');
       if (saved) {
-        const parsed = JSON.parse(saved);
+        const parsed = sanitizeSettings(JSON.parse(saved));
+        localStorage.setItem('site_settings', JSON.stringify(parsed));
         if (parsed && (parsed.brandName || parsed.phone || parsed.logoUrl)) {
           return { ...INITIAL_SETTINGS, ...parsed };
         }
@@ -427,17 +443,17 @@ export default function App() {
       const localSettings = (() => {
         try {
           const saved = localStorage.getItem('site_settings');
-          return saved ? JSON.parse(saved) : null;
+          return saved ? sanitizeSettings(JSON.parse(saved)) : null;
         } catch {
           return null;
         }
       })();
 
       // Robust version-aware merge: prioritize user settings over default files
-      let resolvedSettings = { ...INITIAL_SETTINGS };
+      let resolvedSettings = sanitizeSettings({ ...INITIAL_SETTINGS });
 
       if (settingsRes && settingsRes.brandName) {
-        resolvedSettings = { ...resolvedSettings, ...settingsRes };
+        resolvedSettings = sanitizeSettings({ ...resolvedSettings, ...settingsRes });
       }
 
       const serverVersion = Number(settingsRes?.version || settingsRes?.updatedAt || 0);
@@ -445,7 +461,7 @@ export default function App() {
 
       if (localSettings && (localSettings.brandName || localSettings.phone || localSettings.logoUrl)) {
         if (localVersion >= serverVersion || serverVersion <= 1) {
-          resolvedSettings = { ...resolvedSettings, ...localSettings };
+          resolvedSettings = sanitizeSettings({ ...resolvedSettings, ...localSettings });
         }
       }
 
