@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { INITIAL_COUNTRIES, INITIAL_FORMS, INITIAL_MENUS, INITIAL_SETTINGS } from './data/initialData';
+import { db, testFirestoreConnection } from './lib/firebase';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { 
   Globe, Plane, GraduationCap, Building2, FileText, Download, Calendar, 
   User, Lock, CheckCircle2, Search, ArrowRight, ShieldCheck, Phone, 
@@ -384,7 +386,29 @@ export default function App() {
   };
 
   useEffect(() => {
+    testFirestoreConnection();
     fetchData();
+
+    // Real-time Firestore sync for Site Settings across all browsers / devices / Vercel
+    try {
+      const unsubscribe = onSnapshot(doc(db, 'settings', 'config'), (docSnap) => {
+        if (docSnap.exists()) {
+          const cloudData = docSnap.data();
+          if (cloudData) {
+            const clean = sanitizeSettings(cloudData);
+            setSettings(prev => ({ ...prev, ...clean }));
+            try {
+              localStorage.setItem('site_settings', JSON.stringify(clean));
+            } catch (e) {}
+          }
+        }
+      }, (err) => {
+        console.warn('Firestore onSnapshot error:', err);
+      });
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Firestore subscription failed:', e);
+    }
   }, []);
 
   const fetchData = async () => {
@@ -536,6 +560,13 @@ export default function App() {
     setBookings(prev => [newBooking, ...prev]);
     setBookingSubmitted(true);
 
+    // Save to Firestore Cloud Database
+    try {
+      await setDoc(doc(db, 'bookings', newBooking.id), newBooking);
+    } catch (fErr) {
+      console.warn('Firestore booking save error:', fErr);
+    }
+
     try {
       const localSmtpPass = localStorage.getItem('impact_cpanel_smtp_pass') || '';
       const payload = {
@@ -676,6 +707,13 @@ export default function App() {
       localStorage.setItem('site_settings', JSON.stringify(updatedWithTimestamp));
     } catch (err) {
       console.warn('LocalStorage save error:', err);
+    }
+
+    // 2. Persist to Firebase Firestore Cloud Database (Instant real-time sync for Vercel/Incognito/All devices)
+    try {
+      await setDoc(doc(db, 'settings', 'config'), updatedWithTimestamp, { merge: true });
+    } catch (fsErr) {
+      console.warn('Firestore settings save error:', fsErr);
     }
 
     // 2. Persist to server / disk across all directories

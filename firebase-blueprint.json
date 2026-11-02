@@ -1,0 +1,48 @@
+{
+  "entities": {
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Global application configuration and contact information",
+      "type": "object",
+      "properties": {
+        "brandName": { "type": "string" },
+        "tagline": { "type": "string" },
+        "phone": { "type": "string" },
+        "landline": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "footerLogoUrl": { "type": "string" },
+        "version": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      }
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Consultation and visa booking submissions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "visaType": { "type": "string" },
+        "destination": { "type": "string" },
+        "preferredDate": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["fullName", "email", "phone"]
+    }
+  },
+  "firestore": {
+    "/settings/config": {
+      "schema": "SiteSettings",
+      "description": "Global site settings document"
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Consultation bookings collection"
+    }
+  }
+}

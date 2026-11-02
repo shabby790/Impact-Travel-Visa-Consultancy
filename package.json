@@ -24,6 +24,7 @@
     "dotenv": "^16.4.5",
     "esbuild": "^0.23.1",
     "express": "^4.21.2",
+    "firebase": "^13.1.0",
     "lucide-react": "^0.460.0",
     "motion": "^11.11.1",
     "nodemailer": "^10.2.1",
