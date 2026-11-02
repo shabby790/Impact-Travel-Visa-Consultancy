@@ -162,23 +162,25 @@ const BrandLogo = ({
 }) => {
   const [loadFailed, setLoadFailed] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const [activeSrc, setActiveSrc] = useState(src || '');
 
   useEffect(() => {
     setLoadFailed(false);
     setRetryKey(0);
+    setActiveSrc(src || '');
   }, [src]);
 
   // Clean source URL with cache buster if it's a relative path and not a data URL
   const resolvedSrc = React.useMemo(() => {
-    if (!src) return '';
-    if (src.startsWith('data:') || src.startsWith('blob:')) return src;
-    if (src.includes('?v=')) return src;
-    return `${src}${src.includes('?') ? '&' : '?'}v=${retryKey > 0 ? Date.now() : '3'}`;
-  }, [src, retryKey]);
+    if (!activeSrc) return '';
+    if (activeSrc.startsWith('data:') || activeSrc.startsWith('blob:')) return activeSrc;
+    if (activeSrc.includes('?v=')) return activeSrc;
+    return `${activeSrc}${activeSrc.includes('?') ? '&' : '?'}v=${retryKey > 0 ? Date.now() : '4'}`;
+  }, [activeSrc, retryKey]);
 
   if (!resolvedSrc || loadFailed) {
     return (
-      <div className="w-full h-full min-w-8 min-h-8 flex items-center justify-center bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-700 text-white font-black text-xs uppercase tracking-tight select-none rounded-lg">
+      <div className="w-full h-full min-w-10 min-h-10 flex items-center justify-center bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-700 text-white font-black text-xs uppercase tracking-tight select-none rounded-lg p-2">
         <span>{fallbackText}</span>
       </div>
     );
@@ -189,7 +191,11 @@ const BrandLogo = ({
       src={resolvedSrc}
       alt={alt}
       onError={() => {
-        if (retryKey < 3) {
+        if (activeSrc && activeSrc.endsWith('.jpg')) {
+          setActiveSrc(activeSrc.replace('.jpg', '.png'));
+        } else if (activeSrc && activeSrc.endsWith('.png')) {
+          setActiveSrc(activeSrc.replace('.png', '.svg'));
+        } else if (retryKey < 3) {
           setTimeout(() => setRetryKey(prev => prev + 1), 300);
         } else {
           setLoadFailed(true);
@@ -967,17 +973,12 @@ export default function App() {
             className="flex items-center space-x-2.5 sm:space-x-3.5 cursor-pointer group select-none shrink-0" 
             onClick={() => { setActiveTab('home'); setMobileMenuOpen(false); }}
           >
-            <div className="relative">
-              <div className="w-11 h-11 sm:w-12 sm:h-12 bg-white rounded-2xl flex items-center justify-center shadow-md shadow-emerald-600/15 group-hover:scale-105 transition-all duration-300 ring-2 ring-emerald-500/20 overflow-hidden p-1">
-                <BrandLogo 
-                  src={settings.logoUrl} 
-                  alt={settings.brandName || "Logo"} 
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-xs">
-                <Plane className="w-3 h-3 text-emerald-600 -rotate-45" />
-              </div>
+            <div className="h-11 sm:h-12 max-w-[180px] sm:max-w-[240px] bg-white rounded-xl flex items-center justify-center border border-slate-200/80 shadow-xs p-1 group-hover:scale-105 transition-all duration-300 overflow-hidden shrink-0">
+              <BrandLogo 
+                src={settings.logoUrl} 
+                alt={settings.brandName || "Logo"} 
+                className="h-full w-auto max-w-full object-contain"
+              />
             </div>
             <div>
               <div className="flex items-center space-x-1.5">
@@ -3520,11 +3521,11 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           <div className="space-y-4 md:col-span-1">
             <div className="flex items-center space-x-3">
-              <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-sm p-1">
+              <div className="h-11 sm:h-12 max-w-[180px] bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-sm p-1 border border-slate-700 shrink-0">
                 <BrandLogo 
                   src={settings.footerLogoUrl || settings.logoUrl} 
                   alt={settings.brandName || "Footer Logo"} 
-                  className="w-full h-full object-contain"
+                  className="h-full w-auto max-w-full object-contain"
                 />
               </div>
               <h2 className="text-lg font-bold tracking-tight">{settings.brandName}</h2>
