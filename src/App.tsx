@@ -912,8 +912,8 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
       {/* Top Bar */}
-      <div className="bg-slate-950 text-slate-300 text-xs py-2 px-3 sm:px-8 flex justify-between items-center border-b border-slate-800/80">
-        <div className="flex items-center space-x-2 sm:space-x-4">
+      <div className="bg-slate-950 text-slate-300 text-xs py-2 px-3 sm:px-8 flex flex-wrap justify-between items-center gap-2 border-b border-slate-800/80">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <div className="flex items-center space-x-1.5 bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 px-2 py-0.5 rounded-full text-[11px] font-semibold">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -921,34 +921,38 @@ export default function App() {
             </span>
             <span>Visa Desk Live</span>
           </div>
-          <a href={`tel:${settings.phone}`} className="flex items-center hover:text-emerald-400 font-medium transition text-[11px] sm:text-xs">
-            <Phone className="w-3.5 h-3.5 mr-1 text-emerald-400 shrink-0" />
-            <span>Mobile: {settings.phone}</span>
-          </a>
+          {settings.phone && (
+            <a href={`tel:${settings.phone}`} className="flex items-center hover:text-emerald-400 font-medium transition text-[11px] sm:text-xs">
+              <Phone className="w-3.5 h-3.5 mr-1 text-emerald-400 shrink-0" />
+              <span>Mobile: {settings.phone}</span>
+            </a>
+          )}
           {settings.landline && (
             <a href={`tel:${settings.landline}`} className="hidden sm:flex items-center hover:text-emerald-400 font-medium transition text-[11px] sm:text-xs text-slate-300">
               <Phone className="w-3.5 h-3.5 mr-1 text-emerald-400 shrink-0" />
               <span>Landline: {settings.landline}</span>
             </a>
           )}
-          <a href={`mailto:${settings.email}`} className="hidden md:flex items-center hover:text-emerald-400 font-medium transition text-[11px] sm:text-xs text-slate-400">
-            <Mail className="w-3.5 h-3.5 mr-1 text-emerald-400 shrink-0" />
-            <span className="truncate max-w-[160px]">{settings.email}</span>
-          </a>
+          {settings.email && (
+            <a href={`mailto:${settings.email}`} className="hidden md:flex items-center hover:text-emerald-400 font-medium transition text-[11px] sm:text-xs text-slate-400">
+              <Mail className="w-3.5 h-3.5 mr-1 text-emerald-400 shrink-0" />
+              <span>{settings.email}</span>
+            </a>
+          )}
         </div>
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          <span className="hidden sm:inline-flex items-center text-[11px] font-bold text-emerald-300/90 bg-slate-900 border border-slate-800 px-2.5 py-0.5 rounded-md">
-            🌍 {countries.length || 64} Destinations
-          </span>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {settings.address && (
-            <span className="hidden md:inline-flex items-center text-slate-300 text-[11px] truncate max-w-xs bg-slate-900 border border-slate-800 px-2.5 py-0.5 rounded-md">
+            <span className="inline-flex items-center text-slate-200 text-[11px] font-medium bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg">
               <MapPin className="w-3.5 h-3.5 inline mr-1 text-emerald-400 shrink-0" />
-              <span className="truncate">{settings.address}</span>
+              <span className="whitespace-normal break-words">{settings.address}</span>
             </span>
           )}
+          <span className="hidden sm:inline-flex items-center text-[11px] font-bold text-emerald-300/90 bg-slate-900 border border-slate-800 px-2.5 py-0.5 rounded-md shrink-0">
+            🌍 {countries.length || 64} Destinations
+          </span>
           <button 
             onClick={() => { setActiveTab('admin'); setMobileMenuOpen(false); }} 
-            className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center transition bg-slate-900 hover:bg-slate-800 px-2 sm:px-2.5 py-1 rounded-lg border border-slate-800 text-[11px]"
+            className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center transition bg-slate-900 hover:bg-slate-800 px-2 sm:px-2.5 py-1 rounded-lg border border-slate-800 text-[11px] shrink-0"
           >
             <Lock className="w-3 h-3 mr-1" /> Admin Portal
           </button>
