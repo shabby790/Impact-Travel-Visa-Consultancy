@@ -226,7 +226,7 @@ export default function App() {
     if (clean.landline === '+92 42 35789000' || clean.landline === '+92 42 1234567') {
       clean.landline = '';
     }
-    if (typeof clean.address === 'string' && (clean.address.includes('Gulberg') || clean.address.includes('Blue Area') || clean.address.includes('Siddiq'))) {
+    if (clean.address === '72 Main Boulevard Gulberg II, Lahore') {
       clean.address = '';
     }
     return clean;
@@ -940,9 +940,12 @@ export default function App() {
           <span className="hidden sm:inline-flex items-center text-[11px] font-bold text-emerald-300/90 bg-slate-900 border border-slate-800 px-2.5 py-0.5 rounded-md">
             🌍 {countries.length || 64} Destinations
           </span>
-          <span className="hidden lg:inline text-slate-400 text-[11px] truncate max-w-xs">
-            <MapPin className="w-3.5 h-3.5 inline mr-1 text-emerald-400" /> {settings.address}
-          </span>
+          {settings.address && (
+            <span className="hidden md:inline-flex items-center text-slate-300 text-[11px] truncate max-w-xs bg-slate-900 border border-slate-800 px-2.5 py-0.5 rounded-md">
+              <MapPin className="w-3.5 h-3.5 inline mr-1 text-emerald-400 shrink-0" />
+              <span className="truncate">{settings.address}</span>
+            </span>
+          )}
           <button 
             onClick={() => { setActiveTab('admin'); setMobileMenuOpen(false); }} 
             className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center transition bg-slate-900 hover:bg-slate-800 px-2 sm:px-2.5 py-1 rounded-lg border border-slate-800 text-[11px]"
@@ -1250,6 +1253,14 @@ export default function App() {
                     </div>
                     <span>Landline: {settings.landline}</span>
                   </a>
+                )}
+                {settings.address && (
+                  <div className="flex items-start space-x-2 text-xs font-bold text-slate-800">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <MapPin className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="leading-snug">{settings.address}</span>
+                  </div>
                 )}
                 <a 
                   href={`mailto:${settings.email}`}
