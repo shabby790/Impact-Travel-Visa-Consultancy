@@ -508,7 +508,7 @@ export default function App() {
       id: `bk-${Date.now()}`,
       fullName: bookingForm.fullName || 'Valued Client',
       email: bookingForm.email || 'info@impactvisa.com.pk',
-      phone: bookingForm.phone || '+92 326500830',
+      phone: bookingForm.phone || '',
       visaType: bookingForm.visaType || 'Consultation Inquiry',
       destination: bookingForm.destination || 'Global',
       preferredDate: bookingForm.preferredDate || new Date().toISOString().split('T')[0],

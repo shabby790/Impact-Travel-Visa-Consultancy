@@ -90,10 +90,10 @@ var ai = new GoogleGenAI({ apiKey });
 var siteSettings = {
   brandName: "Impact Visas & Immigration",
   tagline: "Consultants (Private) Limited - Gateway to Global Horizons",
-  phone: "+92 326500830",
-  landline: "+92 42 35789000",
+  phone: "",
+  landline: "",
   email: "info@impactvisa.com.pk",
-  address: "72 Main Boulevard Gulberg II, Lahore",
+  address: "",
   logoUrl: "/logo.jpg",
   footerLogoUrl: "/footer-logo.jpg"
 };
@@ -2884,7 +2884,7 @@ var bookings = [
     id: "bk-101",
     fullName: "Ahmed Khan",
     email: "ahmed.khan@example.com",
-    phone: "+92 300 1234567",
+    phone: "",
     visaType: "Student Visa",
     destination: "Canada",
     preferredDate: "2026-10-15",
@@ -2895,7 +2895,7 @@ var bookings = [
     id: "bk-102",
     fullName: "Fatima Noor",
     email: "fatima.noor@example.com",
-    phone: "+92 321 9876543",
+    phone: "",
     visaType: "Umrah Package",
     destination: "Saudi Arabia",
     preferredDate: "2026-10-18",
