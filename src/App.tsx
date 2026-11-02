@@ -74,6 +74,7 @@ interface SiteSettings {
   brandName: string;
   tagline: string;
   phone: string;
+  landline?: string;
   email: string;
   address: string;
   logoUrl?: string;
@@ -263,6 +264,7 @@ export default function App() {
     fullName: '',
     email: '',
     phone: '',
+    landline: '',
     visaType: 'Student Visa',
     destination: 'Canada',
     preferredDate: ''
@@ -867,8 +869,14 @@ export default function App() {
           </div>
           <a href={`tel:${settings.phone}`} className="flex items-center hover:text-emerald-400 font-medium transition text-[11px] sm:text-xs">
             <Phone className="w-3.5 h-3.5 mr-1 text-emerald-400 shrink-0" />
-            <span>{settings.phone}</span>
+            <span>Mobile: {settings.phone}</span>
           </a>
+          {settings.landline && (
+            <a href={`tel:${settings.landline}`} className="hidden sm:flex items-center hover:text-emerald-400 font-medium transition text-[11px] sm:text-xs text-slate-300">
+              <Phone className="w-3.5 h-3.5 mr-1 text-emerald-400 shrink-0" />
+              <span>Landline: {settings.landline}</span>
+            </a>
+          )}
           <a href={`mailto:${settings.email}`} className="hidden md:flex items-center hover:text-emerald-400 font-medium transition text-[11px] sm:text-xs text-slate-400">
             <Mail className="w-3.5 h-3.5 mr-1 text-emerald-400 shrink-0" />
             <span className="truncate max-w-[160px]">{settings.email}</span>
@@ -1173,11 +1181,22 @@ export default function App() {
                   href={`tel:${settings.phone}`}
                   className="flex items-center space-x-2 text-xs font-bold text-slate-800 hover:text-emerald-600 transition"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
                     <Phone className="w-3.5 h-3.5" />
                   </div>
-                  <span>{settings.phone}</span>
+                  <span>Mobile: {settings.phone}</span>
                 </a>
+                {settings.landline && (
+                  <a 
+                    href={`tel:${settings.landline}`}
+                    className="flex items-center space-x-2 text-xs font-bold text-slate-800 hover:text-emerald-600 transition"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <Phone className="w-3.5 h-3.5" />
+                    </div>
+                    <span>Landline: {settings.landline}</span>
+                  </a>
+                )}
                 <a 
                   href={`mailto:${settings.email}`}
                   className="flex items-center space-x-2 text-xs font-bold text-slate-800 hover:text-emerald-600 transition"
@@ -2619,15 +2638,26 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Phone / WhatsApp Number</label>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Mobile / WhatsApp Number</label>
                           <input 
                             type="text" 
                             required
                             value={settings.phone}
                             onChange={(e) => setSettings({...settings, phone: e.target.value})}
-                            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500"
+                            placeholder="+92 326500830"
+                            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 font-semibold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Landline Number</label>
+                          <input 
+                            type="text" 
+                            value={settings.landline || ''}
+                            onChange={(e) => setSettings({...settings, landline: e.target.value})}
+                            placeholder="+92 42 35789000"
+                            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 font-semibold"
                           />
                         </div>
                         <div>
@@ -2637,7 +2667,7 @@ export default function App() {
                             required
                             value={settings.email}
                             onChange={(e) => setSettings({...settings, email: e.target.value})}
-                            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500"
+                            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 font-semibold"
                           />
                         </div>
                       </div>
@@ -3481,11 +3511,17 @@ export default function App() {
               </li>
               <li className="flex items-center space-x-2">
                 <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>{settings.phone}</span>
+                <span>Mobile: <a href={`tel:${settings.phone}`} className="hover:text-emerald-300 font-semibold">{settings.phone}</a></span>
               </li>
+              {settings.landline && (
+                <li className="flex items-center space-x-2">
+                  <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Landline: <a href={`tel:${settings.landline}`} className="hover:text-emerald-300 font-semibold">{settings.landline}</a></span>
+                </li>
+              )}
               <li className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>{settings.email}</span>
+                <a href={`mailto:${settings.email}`} className="hover:text-emerald-300 font-semibold">{settings.email}</a>
               </li>
             </ul>
           </div>

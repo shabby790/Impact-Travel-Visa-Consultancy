@@ -109,6 +109,7 @@ interface SiteSettings {
   brandName: string;
   tagline: string;
   phone: string;
+  landline?: string;
   email: string;
   address: string;
   logoUrl?: string;
@@ -121,6 +122,7 @@ let siteSettings: SiteSettings = {
   brandName: 'Impact Visas & Immigration',
   tagline: 'Consultants (Private) Limited - Gateway to Global Horizons',
   phone: '+92 326500830',
+  landline: '+92 42 35789000',
   email: 'info@impactvisa.com.pk',
   address: '72 Main Boulevard Gulberg II, Lahore',
   logoUrl: '/logo.jpg',

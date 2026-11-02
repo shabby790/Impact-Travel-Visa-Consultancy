@@ -2683,6 +2683,7 @@ export const INITIAL_SETTINGS = {
   brandName: siteConfig.brandName || 'Impact Visas & Immigration',
   tagline: siteConfig.tagline || 'Consultants (Private) Limited - Gateway to Global Horizons',
   phone: siteConfig.phone || '+92 326500830',
+  landline: (siteConfig as any).landline || '+92 42 35789000',
   email: siteConfig.email || 'info@impactvisa.com.pk',
   address: siteConfig.address || '72 Main Boulevard Gulberg II, Lahore',
   logoUrl: siteConfig.logoUrl || '/logo.jpg',
