@@ -2643,10 +2643,9 @@ export default function App() {
                           <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Mobile / WhatsApp Number</label>
                           <input 
                             type="text" 
-                            required
-                            value={settings.phone}
+                            value={settings.phone || ''}
                             onChange={(e) => setSettings({...settings, phone: e.target.value})}
-                            placeholder="+92 326500830"
+                            placeholder="Type Mobile / WhatsApp Number..."
                             className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 font-semibold"
                           />
                         </div>
@@ -2656,7 +2655,7 @@ export default function App() {
                             type="text" 
                             value={settings.landline || ''}
                             onChange={(e) => setSettings({...settings, landline: e.target.value})}
-                            placeholder="+92 42 35789000"
+                            placeholder="Type Landline Number..."
                             className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 font-semibold"
                           />
                         </div>
@@ -2664,9 +2663,9 @@ export default function App() {
                           <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Email Address</label>
                           <input 
                             type="email" 
-                            required
-                            value={settings.email}
+                            value={settings.email || ''}
                             onChange={(e) => setSettings({...settings, email: e.target.value})}
+                            placeholder="info@impactvisa.com.pk"
                             className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 font-semibold"
                           />
                         </div>
@@ -2676,10 +2675,10 @@ export default function App() {
                         <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Office Address</label>
                         <input 
                           type="text" 
-                          required
-                          value={settings.address}
+                          value={settings.address || ''}
                           onChange={(e) => setSettings({...settings, address: e.target.value})}
-                          className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500"
+                          placeholder="Type Office Address..."
+                          className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 font-semibold"
                         />
                       </div>
 

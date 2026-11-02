@@ -121,10 +121,10 @@ interface SiteSettings {
 let siteSettings: SiteSettings = {
   brandName: 'Impact Visas & Immigration',
   tagline: 'Consultants (Private) Limited - Gateway to Global Horizons',
-  phone: '+92 326500830',
-  landline: '+92 42 35789000',
+  phone: '',
+  landline: '',
   email: 'info@impactvisa.com.pk',
-  address: '72 Main Boulevard Gulberg II, Lahore',
+  address: '',
   logoUrl: '/logo.jpg',
   footerLogoUrl: '/footer-logo.jpg'
 };
